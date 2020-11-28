@@ -2,6 +2,7 @@
 name = "wlan-clip"
 version = "0.1.0"
 authors = ["John Teske <john.teske@protonmail.com>"]
+description = "shared clipboard server/UI"
 edition = "2018"
 
 [dependencies]
