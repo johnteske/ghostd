@@ -19,5 +19,5 @@ fn main() {
         .replace("{{ICON}}", ICON);
     fs::write(&dest_path, template).unwrap();
 
-    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=src/index.html");
 }
