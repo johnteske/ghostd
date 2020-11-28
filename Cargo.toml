@@ -1,5 +1,5 @@
 [package]
-name = "wlan-clip"
+name = "ghosty"
 version = "0.1.0"
 authors = ["John Teske <john.teske@protonmail.com>"]
 description = "shared clipboard server/UI"
