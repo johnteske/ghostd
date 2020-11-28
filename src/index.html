@@ -1,7 +1,7 @@
 <html>
   <head>
     <title>ghosty</title>
-    <link href="{{ICON}}" rel="icon" type="image/x-icon" />
+    <link href="@@ICON@@" rel="icon" type="image/x-icon" />
     <style>
       img {
         image-rendering: pixelated;
@@ -11,7 +11,7 @@
     </style>
   </head>
   <body>
-    <img src="{{ICON}}" />
+    <img src="@@ICON@@" />
     <fieldset id="get">
       <input type="text" />
       <button>copy</button>
@@ -20,6 +20,8 @@
       <input type="text" />
       <button>set</button>
     </fieldset>
-    <script>{{SCRIPT}}</script>
+    <script>
+      @@SCRIPT@@;
+    </script>
   </body>
 </html>

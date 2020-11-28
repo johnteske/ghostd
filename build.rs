@@ -19,10 +19,10 @@ fn main() {
     let script = fs::read(&src_dir.join("script.js")).expect("could not read script.js");
     let script_content = str::from_utf8(&script).unwrap();
 
-    let template = r###"const HTML: &str = r##"{{HTML}}"##;"###
-        .replace("{{HTML}}", html_content)
-        .replace("{{SCRIPT}}", script_content)
-        .replace("{{ICON}}", ICON);
+    let template = r###"const HTML: &str = r##"@@HTML@@"##;"###
+        .replace("@@HTML@@", html_content)
+        .replace("@@SCRIPT@@", script_content)
+        .replace("@@ICON@@", ICON);
     fs::write(&dest_path, template).unwrap();
 
     println!("cargo:rerun-if-changed=src/index.html");

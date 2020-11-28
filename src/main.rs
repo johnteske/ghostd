@@ -41,11 +41,12 @@ async fn index(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult
 #[middleware_fn]
 async fn state_setter(context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
     let req_body_result = context.get_body().await.expect("");
-    let context = req_body_result.1;
+    let mut context = req_body_result.1;
 
     let latest_value = context.extra.latest_value.clone();
     let mut latest_value = latest_value.write().unwrap();
     *latest_value = req_body_result.0;
+    context.body = Body::from(format!("{}", latest_value));
 
     Ok(context)
 }
