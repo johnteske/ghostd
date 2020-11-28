@@ -14,14 +14,6 @@
     <img src="{{ICON}}" />
     <input type="text" />
     <button>copy</button>
-    <script>
-      const input = document.querySelector("input");
-      document.querySelector("button").addEventListener("click", () => { input.select(); document.execCommand("copy") });
-      fetch("/value")
-        .then((response) => response.text())
-        .then((data) => {
-          input.value = data;
-        });
-    </script>
+    <script>{{SCRIPT}}</script>
   </body>
 </html>
