@@ -804,6 +804,7 @@ dependencies = [
  "http 0.1.21",
  "http 0.2.1",
  "httparse",
+ "hyper",
  "lazy_static",
  "log",
  "net2",
@@ -1026,7 +1027,6 @@ version = "0.1.0"
 dependencies = [
  "futures 0.3.8",
  "hyper",
- "log",
  "thruster",
 ]
 
