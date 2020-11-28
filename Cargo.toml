@@ -1,0 +1,11 @@
+[package]
+name = "wlan-clip"
+version = "0.1.0"
+authors = ["John Teske <john.teske@protonmail.com>"]
+edition = "2018"
+
+[dependencies]
+futures = "0.3"
+hyper = "0.13.1"
+thruster = "1.0.1"
+log = "0.4"
