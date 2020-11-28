@@ -1,0 +1,25 @@
+<html>
+  <head>
+    <title>ghosty</title>
+    <link href="{{ICON}}" rel="icon" type="image/x-icon" />
+    <style>
+      img {
+        image-rendering: pixelated;
+        width: 64px;
+        height: 64px;
+      }
+    </style>
+  </head>
+  <body>
+    <img src="{{ICON}}" />
+    <input type="text" />
+    <button>copy</button>
+    <script>
+      fetch("/value")
+        .then((response) => response.text())
+        .then((data) => {
+          document.querySelector("input").value = data;
+        });
+    </script>
+  </body>
+</html>

@@ -10,7 +10,7 @@ use thruster::{MiddlewareNext, MiddlewareResult};
 use std::sync::Arc;
 use std::sync::RwLock;
 
-static ICON: &str = "data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//wAAznMAANWrAADb2wAA33sAAN47AADQCwAA3/sAANWrAADb2wAA1asAAN/7AADv9wAA9+8AAPgfAAD//wAA";
+include!(concat!(env!("OUT_DIR"), "/html.rs"));
 
 type Ctx = TypedHyperContext<RequestConfig>;
 
@@ -32,21 +32,8 @@ fn generate_context(request: HyperRequest, state: &ServerConfig, _path: &str) ->
 }
 
 #[middleware_fn]
-async fn html(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
-    let val = r#"<html>
-<head>
-    <title>ghosty</title>
-    <link href="{{ICON}}" rel="icon" type="image/x-icon" />
-    <style>img { image-rendering: pixelated; width: 64px; height: 64px; }</style>
-</head>
-<body>
-    <img src="{{ICON}}" />
-    <div>todo</div>
-    <button disabled="true">copy</button>
-</body>
-</html>"#
-    .replace("{{ICON}}", ICON);
-    context.body(&val);
+async fn index(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
+    context.body(&HTML);
 
     Ok(context)
 }
@@ -79,7 +66,7 @@ fn main() {
             val: Arc::new(RwLock::new("UNSET".to_string())),
         },
     );
-    app.get("/", async_middleware!(Ctx, [html]));
+    app.get("/", async_middleware!(Ctx, [index]));
     app.post("/value", async_middleware!(Ctx, [state_setter]));
     app.get("/value", async_middleware!(Ctx, [state_getter]));
 
