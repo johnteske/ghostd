@@ -1,26 +1,22 @@
 <html>
   <head>
     <title>ghosty</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="@@ICON@@" rel="icon" type="image/x-icon" />
     <style>
-      @@STYLE@@
-      img {
-        image-rendering: pixelated;
-        width: 64px;
-        height: 64px;
-      }
+      @@STYLE@@;
     </style>
   </head>
   <body>
     <img src="@@ICON@@" />
-    <fieldset id="get">
+    <div id="get">
       <input type="text" readonly />
       <button>copy</button>
-    </fieldset>
-    <fieldset id="set">
+    </div>
+    <div id="set">
       <input type="text" />
       <button>set</button>
-    </fieldset>
+    </div>
     <script>
       @@SCRIPT@@;
     </script>

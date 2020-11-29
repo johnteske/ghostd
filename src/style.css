@@ -1,3 +1,27 @@
+* {
+  margin: 1em;
+  padding: 0;
+}
+
+body {
+  max-width: 45rem;
+}
+
+div {
+  display: flex;
+}
+input,
+button {
+  padding: 1em;
+}
+input {
+  flex: 4;
+  font-family: monospace;
+}
+button {
+  flex: 1;
+}
+
 img {
   image-rendering: pixelated;
   width: 64px;
