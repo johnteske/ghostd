@@ -35,5 +35,6 @@ fn get_file_content(path: &std::path::PathBuf) -> String {
         None => "path",
     };
     let file = fs::read(&path).expect(&format!("error reading {}", path_str));
-    String::from(str::from_utf8(&file).expect(&format!("error parsing {}", path_str)))
+    let content = str::from_utf8(&file).expect(&format!("error parsing {}", path_str));
+    String::from(content)
 }
