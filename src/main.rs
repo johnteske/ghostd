@@ -1,4 +1,3 @@
-use hyper::Body;
 use thruster::context::hyper_request::HyperRequest;
 use thruster::context::typed_hyper_context::TypedHyperContext;
 use thruster::hyper_server::HyperServer;
@@ -20,11 +19,13 @@ type Ctx = TypedHyperContext<RequestConfig>;
 struct ServerConfig {
     value: Arc<RwLock<String>>,
     expires: Arc<RwLock<Instant>>,
+    seconds_until_exp: Arc<RwLock<Duration>>,
 }
 
 struct RequestConfig {
     value: Arc<RwLock<String>>,
     expires: Arc<RwLock<Instant>>,
+    seconds_until_exp: Arc<RwLock<Duration>>,
 }
 
 fn generate_context(request: HyperRequest, state: &ServerConfig, _path: &str) -> Ctx {
@@ -33,6 +34,7 @@ fn generate_context(request: HyperRequest, state: &ServerConfig, _path: &str) ->
         RequestConfig {
             value: state.value.clone(),
             expires: state.expires.clone(),
+            seconds_until_exp: state.seconds_until_exp.clone(),
         },
     )
 }
@@ -46,18 +48,26 @@ async fn check_expiration(mut context: Ctx, next: MiddlewareNext<Ctx>) -> Middle
     let expires = context.extra.expires.clone();
     let expires = expires.read().unwrap();
 
-    // no time should have passed since expiration is hopefully in the future
-    match now.checked_duration_since(*expires) {
-        Some(_) => {
+    let duration_until_exp;
+    match expires.checked_duration_since(now) {
+        Some(d) => {
+            // this is correct but the updated value is not sent
+            println!("OK {}", d.as_secs());
+            duration_until_exp = d;
+        }
+        None => {
             println!("ERR");
             let value = context.extra.value.clone();
             let mut value = value.write().unwrap();
             *value = "UNSET".to_string();
-        }
-        None => {
-            println!("OK");
+
+            duration_until_exp = Duration::new(0, 0);
         }
     }
+
+    let seconds_until_exp = context.extra.seconds_until_exp.clone();
+    let mut seconds_until_exp = seconds_until_exp.write().unwrap();
+    *seconds_until_exp = duration_until_exp; // .as_secs();
 
     Ok(context)
 }
@@ -78,9 +88,14 @@ async fn state_setter(context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareRes
     let mut value = value.write().unwrap();
     *value = req_body_result.0;
 
-    //context.body(&format!("{{\"message\": \"{}\",\"success\":false}}", e));
-    context.body = Body::from(format!("{}", value));
-    //context.body = Body::from(format!("{}, {}", value, expires.elapsed().as_secs_f32()));
+    let seconds_until_exp = context.extra.seconds_until_exp.clone();
+    let seconds_until_exp = seconds_until_exp.read().unwrap();
+
+    context.body(&format!(
+        "{{\"value\": \"{}\",\"seconds_until_exp\": \"{}\" }}",
+        value,
+        seconds_until_exp.as_secs()
+    ));
 
     Ok(context)
 }
@@ -90,8 +105,14 @@ async fn state_getter(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Middlewar
     let value = context.extra.value.clone();
     let value = value.read().unwrap();
 
-    context.body = Body::from(format!("{}", value));
-    //context.body = Body::from(format!("{}, {}", value, expires.elapsed().as_secs_f32()));
+    let seconds_until_exp = context.extra.seconds_until_exp.clone();
+    let seconds_until_exp = seconds_until_exp.read().unwrap();
+
+    context.body(&format!(
+        "{{\"value\": \"{}\",\"seconds_until_exp\": \"{}\" }}",
+        value,
+        seconds_until_exp.as_secs() //value, context.extra.seconds_until_exp
+    ));
 
     Ok(context)
 }
@@ -103,11 +124,18 @@ fn main() {
         ServerConfig {
             value: Arc::new(RwLock::new("UNSET".to_string())),
             expires: Arc::new(RwLock::new(Instant::now() + TIMEOUT)),
+            seconds_until_exp: Arc::new(RwLock::new(Duration::new(0, 0))),
         },
     );
     app.get("/", async_middleware!(Ctx, [check_expiration, index]));
-    app.post("/value", async_middleware!(Ctx, [state_setter]));
-    app.get("/value", async_middleware!(Ctx, [state_getter]));
+    app.post(
+        "/value",
+        async_middleware!(Ctx, [check_expiration, state_setter]),
+    );
+    app.get(
+        "/value",
+        async_middleware!(Ctx, [check_expiration, state_getter]),
+    );
 
     let server = HyperServer::new(app);
     server.start("0.0.0.0", 4321);

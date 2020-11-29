@@ -11,10 +11,10 @@ document.querySelector("#set button").addEventListener("click", setValue);
 setMessage("loading...");
 
 fetch("/value")
-  .then((response) => response.text())
+  .then((response) => response.json())
   .then((data) => {
-    setGetInput(data);
-    setMessage("...");
+    setGetInput(data.value);
+    setMessage("..."); // + data.seconds_until_exp
   })
   .catch((error) => {
     console.log(error);
@@ -57,11 +57,11 @@ function setValue() {
     },
     body: setInput.value,
   })
-    .then((response) => response.text())
+    .then((response) => response.json())
     .then((data) => {
       setInput.value = null;
-      setGetInput(data);
-      setMessage("set new value!");
+      setGetInput(data.value);
+      setMessage("set new value!"); // + data.seconds_until_exp
     })
     .catch((error) => {
       console.log(error);
