@@ -1,3 +1,4 @@
+const message = document.querySelector("pre");
 const getInput = document.querySelector("#get input");
 const setInput = document.querySelector("#set input");
 
@@ -7,14 +8,24 @@ document.querySelector("#get button").addEventListener("click", copyValue);
 document.querySelector("#set").addEventListener("keydown", onEnter(setValue));
 document.querySelector("#set button").addEventListener("click", setValue);
 
+setMessage("loading...");
+
 fetch("/value")
   .then((response) => response.text())
   .then((data) => {
-    getInput.value = data;
-    selectAll(getInput);
+    setGetInput(data);
+    setMessage("...");
+  })
+  .catch((error) => {
+    console.log(error);
+    setMessage("error getting value");
   });
 
 //
+
+function setMessage(str) {
+  message.innerHTML = str;
+}
 
 function selectAll(el) {
   el.select();
@@ -27,9 +38,15 @@ function onEnter(fn) {
   };
 }
 
+function setGetInput(value) {
+  getInput.value = value;
+  selectAll(getInput);
+}
+
 function copyValue() {
   selectAll(getInput);
   document.execCommand("copy");
+  setMessage("copied!");
 }
 
 function setValue() {
@@ -43,10 +60,11 @@ function setValue() {
     .then((response) => response.text())
     .then((data) => {
       setInput.value = null;
-      getInput.value = data;
-      selectAll(getInput);
+      setGetInput(data);
+      setMessage("set new value!");
     })
     .catch((error) => {
-      console.error(error);
+      console.log(error);
+      setMessage("error setting value");
     });
 }

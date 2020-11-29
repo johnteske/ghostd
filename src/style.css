@@ -7,6 +7,15 @@ body {
   max-width: 45rem;
 }
 
+img {
+  image-rendering: pixelated;
+  width: 64px;
+  height: 64px;
+}
+pre {
+  align-self: center;
+}
+
 div {
   display: flex;
 }
@@ -20,10 +29,4 @@ input {
 }
 button {
   flex: 1;
-}
-
-img {
-  image-rendering: pixelated;
-  width: 64px;
-  height: 64px;
 }
