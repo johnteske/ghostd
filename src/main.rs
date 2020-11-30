@@ -13,6 +13,9 @@ include!(concat!(env!("OUT_DIR"), "/html.rs"));
 
 // const TIMEOUT: Duration = Duration::from_secs(120);
 
+const OK_200: &str = "200 OK";
+const NOT_FOUND_404: &str = "404 NOT FOUND";
+
 fn main() {
     let listener = TcpListener::bind("0.0.0.0:4321").unwrap();
 
@@ -27,14 +30,10 @@ fn handle_connection(mut stream: TcpStream) {
     let mut buffer = [0; 1024];
     stream.read(&mut buffer).unwrap();
 
-    let (status_line, filename, message_body) = match buffer {
-        b if b.starts_with(b"GET / HTTP") => {
-            ("HTTP/1.1 200 OK\r\n\r\n", Some("src/index.html"), HTML)
-        }
-        b if b.starts_with(b"GET /value HTTP") => {
-            ("HTTP/1.1 200 OK\r\n\r\n", None, "{ \"value\": \"TODO\" }")
-        }
-        _ => ("HTTP/1.1 404 NOT FOUND\r\n\r\n", None, ""),
+    let (status, filename, message_body) = match buffer {
+        b if b.starts_with(b"GET / HTTP") => (OK_200, Some("src/index.html"), HTML),
+        b if b.starts_with(b"GET /value HTTP") => (OK_200, None, "{ \"value\": \"TODO\" }"),
+        _ => (NOT_FOUND_404, None, ""),
     };
 
     #[cfg(feature = "serve-files")]
@@ -42,7 +41,7 @@ fn handle_connection(mut stream: TcpStream) {
     #[cfg(not(feature = "serve-files"))]
     let contents = message_body;
 
-    let response = format!("{}{}", status_line, contents);
+    let response = format!("HTTP/1.1 {}\r\n\r\n{}", status, contents);
 
     stream.write(response.as_bytes()).unwrap();
     stream.flush().unwrap();
