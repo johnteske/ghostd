@@ -1,6 +1,7 @@
 use std::env;
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 use std::str;
 
 // TODO generate from file
@@ -10,6 +11,14 @@ const ICON: &str = "data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAA
 fn main() {
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("html.rs");
+
+    #[cfg(unix)]
+    Command::new("npx")
+        .arg("prettier")
+        .arg("--write")
+        .arg("src")
+        .output()
+        .expect("failed to execute process");
 
     let src_dir = Path::new("src");
 
