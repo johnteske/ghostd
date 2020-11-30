@@ -76,20 +76,25 @@ async fn index(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult
     Ok(context)
 }
 
-// TODO reset expiration here
 #[middleware_fn]
-async fn state_setter(mut context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
-    context = next(context).await?;
-
-    let req_body_result = context.get_body().await.expect("");
+async fn state_setter(context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
+    let req_body_result = context
+        .get_body()
+        .await
+        .expect("could not get request body");
     let mut context = req_body_result.1;
 
     let value = context.extra.value.clone();
     let mut value = value.write().unwrap();
     *value = req_body_result.0;
 
+    let expires = context.extra.expires.clone();
+    let mut expires = expires.write().unwrap();
+    *expires = Instant::now() + TIMEOUT;
+
     let seconds_until_exp = context.extra.seconds_until_exp.clone();
-    let seconds_until_exp = seconds_until_exp.read().unwrap();
+    let mut seconds_until_exp = seconds_until_exp.write().unwrap();
+    *seconds_until_exp = TIMEOUT.as_secs();
 
     context.body(&format!(
         "{{\"value\": \"{}\",\"seconds_until_exp\": \"{}\" }}",
@@ -120,18 +125,14 @@ async fn state_getter(mut context: Ctx, next: MiddlewareNext<Ctx>) -> Middleware
 fn main() {
     let mut app = App::<HyperRequest, Ctx, ServerConfig>::create(
         generate_context,
-        // TODO share this with whatever reset fn I create
         ServerConfig {
             value: Arc::new(RwLock::new("UNSET".to_string())),
-            expires: Arc::new(RwLock::new(Instant::now() + TIMEOUT)),
+            expires: Arc::new(RwLock::new(Instant::now())),
             seconds_until_exp: Arc::new(RwLock::new(0)),
         },
     );
     app.get("/", async_middleware!(Ctx, [index]));
-    app.post(
-        "/value",
-        async_middleware!(Ctx, [state_setter, check_expiration]),
-    );
+    app.post("/value", async_middleware!(Ctx, [state_setter]));
     app.get(
         "/value",
         async_middleware!(Ctx, [state_getter, check_expiration]),
