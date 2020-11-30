@@ -1,4 +1,3 @@
-use hyper::Body;
 use thruster::context::hyper_request::HyperRequest;
 use thruster::context::typed_hyper_context::TypedHyperContext;
 use thruster::hyper_server::HyperServer;
@@ -9,26 +8,65 @@ use thruster::{MiddlewareNext, MiddlewareResult};
 
 use std::sync::Arc;
 use std::sync::RwLock;
+use std::time::{Duration, Instant};
 
 include!(concat!(env!("OUT_DIR"), "/html.rs"));
+
+const TIMEOUT: Duration = Duration::from_secs(120);
 
 type Ctx = TypedHyperContext<RequestConfig>;
 
 struct ServerConfig {
-    val: Arc<RwLock<String>>,
+    value: Arc<RwLock<String>>,
+    expires: Arc<RwLock<Instant>>,
+    seconds_until_exp: Arc<RwLock<u64>>,
 }
 
 struct RequestConfig {
-    latest_value: Arc<RwLock<String>>,
+    value: Arc<RwLock<String>>,
+    expires: Arc<RwLock<Instant>>,
+    seconds_until_exp: Arc<RwLock<u64>>,
 }
 
 fn generate_context(request: HyperRequest, state: &ServerConfig, _path: &str) -> Ctx {
     Ctx::new(
         request,
         RequestConfig {
-            latest_value: state.val.clone(),
+            value: state.value.clone(),
+            expires: state.expires.clone(),
+            seconds_until_exp: state.seconds_until_exp.clone(),
         },
     )
+}
+
+#[middleware_fn]
+async fn check_expiration(context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
+    let now = Instant::now();
+
+    let expires = context.extra.expires.clone();
+    let expires = expires.read().unwrap();
+
+    let duration_until_exp;
+    match expires.checked_duration_since(now) {
+        Some(d) => {
+            println!("OK {}", d.as_secs());
+            duration_until_exp = d;
+        }
+        None => {
+            println!("ERR");
+            let value = context.extra.value.clone();
+            let mut value = value.write().unwrap();
+            *value = "UNSET".to_string();
+
+            duration_until_exp = Duration::new(0, 0);
+        }
+    }
+
+    let seconds_until_exp = context.extra.seconds_until_exp.clone();
+    let mut seconds_until_exp = seconds_until_exp.write().unwrap();
+    *seconds_until_exp = duration_until_exp.as_secs();
+
+    Ok(context)
 }
 
 #[middleware_fn]
@@ -40,22 +78,46 @@ async fn index(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult
 
 #[middleware_fn]
 async fn state_setter(context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
-    let req_body_result = context.get_body().await.expect("");
+    let req_body_result = context
+        .get_body()
+        .await
+        .expect("could not get request body");
     let mut context = req_body_result.1;
 
-    let latest_value = context.extra.latest_value.clone();
-    let mut latest_value = latest_value.write().unwrap();
-    *latest_value = req_body_result.0;
-    context.body = Body::from(format!("{}", latest_value));
+    let value = context.extra.value.clone();
+    let mut value = value.write().unwrap();
+    *value = req_body_result.0;
+
+    let expires = context.extra.expires.clone();
+    let mut expires = expires.write().unwrap();
+    *expires = Instant::now() + TIMEOUT;
+
+    let seconds_until_exp = context.extra.seconds_until_exp.clone();
+    let mut seconds_until_exp = seconds_until_exp.write().unwrap();
+    *seconds_until_exp = TIMEOUT.as_secs();
+
+    context.body(&format!(
+        "{{\"value\": \"{}\",\"seconds_until_exp\": \"{}\" }}",
+        value, seconds_until_exp
+    ));
 
     Ok(context)
 }
 
 #[middleware_fn]
-async fn state_getter(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
-    let latest_value = context.extra.latest_value.clone();
-    let latest_value = latest_value.read().unwrap();
-    context.body = Body::from(format!("{}", latest_value));
+async fn state_getter(mut context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
+    context = next(context).await?;
+
+    let value = context.extra.value.clone();
+    let value = value.read().unwrap();
+
+    let seconds_until_exp = context.extra.seconds_until_exp.clone();
+    let seconds_until_exp = seconds_until_exp.read().unwrap();
+
+    context.body(&format!(
+        "{{\"value\": \"{}\",\"seconds_until_exp\": \"{}\" }}",
+        value, seconds_until_exp
+    ));
 
     Ok(context)
 }
@@ -64,12 +126,17 @@ fn main() {
     let mut app = App::<HyperRequest, Ctx, ServerConfig>::create(
         generate_context,
         ServerConfig {
-            val: Arc::new(RwLock::new("UNSET".to_string())),
+            value: Arc::new(RwLock::new("UNSET".to_string())),
+            expires: Arc::new(RwLock::new(Instant::now())),
+            seconds_until_exp: Arc::new(RwLock::new(0)),
         },
     );
     app.get("/", async_middleware!(Ctx, [index]));
     app.post("/value", async_middleware!(Ctx, [state_setter]));
-    app.get("/value", async_middleware!(Ctx, [state_getter]));
+    app.get(
+        "/value",
+        async_middleware!(Ctx, [state_getter, check_expiration]),
+    );
 
     let server = HyperServer::new(app);
     server.start("0.0.0.0", 4321);
