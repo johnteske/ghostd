@@ -14,7 +14,7 @@ fetch("/value")
   .then((response) => response.json())
   .then((data) => {
     setGetInput(data.value);
-    setMessage("..."); // + data.seconds_until_exp
+    setMessage("...");
   })
   .catch((error) => {
     console.log(error);
@@ -61,7 +61,7 @@ function setValue() {
     .then((data) => {
       setInput.value = null;
       setGetInput(data.value);
-      setMessage("set new value!"); // + data.seconds_until_exp
+      setMessage("set new value!");
     })
     .catch((error) => {
       console.log(error);
