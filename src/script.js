@@ -1,3 +1,4 @@
+const img = document.querySelector("img");
 const message = document.querySelector("pre");
 const getInput = document.querySelector("#get input");
 const setInput = document.querySelector("#set input");
@@ -39,6 +40,7 @@ function onEnter(fn) {
 }
 
 function setGetInput(value) {
+  img.className = ["", "UNSET"].includes(value) ? "" : "dance";
   getInput.value = value;
   selectAll(getInput);
 }
