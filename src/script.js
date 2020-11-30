@@ -20,6 +20,7 @@ fetch("/value")
   .catch((error) => {
     console.log(error);
     setMessage("error getting value");
+    img.className = "swirl";
   });
 
 //
@@ -68,5 +69,6 @@ function setValue() {
     .catch((error) => {
       console.log(error);
       setMessage("error setting value");
+      img.className = "swirl";
     });
 }
