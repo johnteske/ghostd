@@ -1,3 +1,4 @@
+const img = document.querySelector("img");
 const message = document.querySelector("pre");
 const getInput = document.querySelector("#get input");
 const setInput = document.querySelector("#set input");
@@ -19,6 +20,7 @@ fetch("/value")
   .catch((error) => {
     console.log(error);
     setMessage("error getting value");
+    img.className = "swirl";
   });
 
 //
@@ -39,6 +41,7 @@ function onEnter(fn) {
 }
 
 function setGetInput(value) {
+  img.className = ["", "UNSET"].includes(value) ? "" : "dance";
   getInput.value = value;
   selectAll(getInput);
 }
@@ -66,5 +69,6 @@ function setValue() {
     .catch((error) => {
       console.log(error);
       setMessage("error setting value");
+      img.className = "swirl";
     });
 }
