@@ -1,6 +1,6 @@
 [package]
 name = "ghosty"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["John Teske <john.teske@protonmail.com>"]
 description = "shared clipboard server/UI"
 edition = "2018"

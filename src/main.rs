@@ -122,6 +122,12 @@ async fn state_getter(mut context: Ctx, next: MiddlewareNext<Ctx>) -> Middleware
     Ok(context)
 }
 
+#[middleware_fn]
+async fn four_oh_four(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
+    context.status(404);
+    Ok(context)
+}
+
 fn main() {
     let mut app = App::<HyperRequest, Ctx, ServerConfig>::create(
         generate_context,
@@ -137,6 +143,7 @@ fn main() {
         "/value",
         async_middleware!(Ctx, [state_getter, check_expiration]),
     );
+    app.set404(async_middleware!(Ctx, [four_oh_four]));
 
     let server = HyperServer::new(app);
     server.start("0.0.0.0", 4321);
