@@ -4,19 +4,18 @@ use std::net::TcpStream;
 
 use std::sync::Arc;
 use std::sync::RwLock;
-use std::time::{Duration, Instant};
+use std::time::Instant;
+
+mod state;
+use state::State;
+
+mod timeout;
+use timeout::TIMEOUT;
 
 include!(concat!(env!("OUT_DIR"), "/html.rs"));
 
-const TIMEOUT: Duration = Duration::from_secs(120);
-
 const OK_200: &str = "200 OK";
 const NOT_FOUND_404: &str = "404 NOT FOUND";
-
-struct State {
-    value: String,
-    expires_at: Instant,
-}
 
 fn main() {
     let listener = TcpListener::bind("0.0.0.0:4321").unwrap();
