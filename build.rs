@@ -11,7 +11,7 @@ fn main() {
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("html.rs");
 
-    let src_dir = Path::new("src");
+    let src_dir = Path::new("src").join("assets");
 
     let html_content = get_file_content(&src_dir.join("index.html"));
     let script_content = get_file_content(&src_dir.join("script.js"));
