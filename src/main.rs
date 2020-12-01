@@ -4,24 +4,26 @@ use std::net::TcpStream;
 
 use std::sync::Arc;
 use std::sync::RwLock;
-// use std::time::{Duration, Instant};
+use std::time::{Duration, Instant};
 
 include!(concat!(env!("OUT_DIR"), "/html.rs"));
 
-// const TIMEOUT: Duration = Duration::from_secs(120);
+const TIMEOUT: Duration = Duration::from_secs(120);
 
 const OK_200: &str = "200 OK";
 const NOT_FOUND_404: &str = "404 NOT FOUND";
 
 struct State {
     value: String,
+    expires_at: Instant,
 }
 
 fn main() {
     let listener = TcpListener::bind("0.0.0.0:4321").unwrap();
 
     let state = Arc::new(RwLock::new(State {
-        value: "UNSET".to_string(),
+        value: "".to_string(),
+        expires_at: Instant::now() + TIMEOUT,
     }));
 
     for stream in listener.incoming() {
@@ -42,6 +44,7 @@ fn handle_connection(mut stream: TcpStream, state: Arc<RwLock<State>>) {
         b if b.starts_with(b"GET /value HTTP") => {
             let st = state.clone();
             let st = st.read().unwrap();
+
             (OK_200, format!("{{ \"value\": \"{}\" }}", st.value))
         }
         b if b.starts_with(b"POST /value HTTP") => {
@@ -53,7 +56,9 @@ fn handle_connection(mut stream: TcpStream, state: Arc<RwLock<State>>) {
             let mut st = st.write().unwrap();
             *st = State {
                 value: body.to_string(),
+                expires_at: st.expires_at,
             };
+
             (OK_200, format!("{{ \"value\": \"{}\" }}", body.to_string()))
         }
         // 404
