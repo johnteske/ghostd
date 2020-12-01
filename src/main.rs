@@ -48,12 +48,20 @@ fn handle_connection(mut stream: TcpStream, state: Arc<RwLock<State>>) {
             (OK_200, None, format!("{{ \"value\": \"{}\" }}", st.value))
         }
         b if b.starts_with(b"POST /value HTTP") => {
+            let s = String::from_utf8(b.to_vec()).expect("error converting request");
+            let s = s.trim_end_matches("\0"); // remove NUL
+            let body = s.lines().last().expect("error getting request body");
+
             let st = state.clone();
             let mut st = st.write().unwrap();
             *st = State {
-                value: "TODO".to_string(),
+                value: body.to_string(),
             };
-            (OK_200, None, format!("{{ \"value\": \"{}\" }}", st.value))
+            (
+                OK_200,
+                None,
+                format!("{{ \"value\": \"{}\" }}", body.to_string()),
+            )
         }
         // 404
         _ => (NOT_FOUND_404, None, "".to_string()),
