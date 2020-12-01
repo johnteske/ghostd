@@ -4,6 +4,3 @@ version = "0.3.0"
 authors = ["John Teske <john.teske@protonmail.com>"]
 description = "shared clipboard server/UI"
 edition = "2018"
-
-[features]
-serve-files = []
