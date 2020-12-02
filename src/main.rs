@@ -36,17 +36,17 @@ fn handle_connection(mut stream: TcpStream, state: Arc<RwLock<State>>) {
     let mut buffer = [0; 1024];
     stream.read(&mut buffer).unwrap();
 
-    let (status, message_body): (&str, String) = match buffer {
+    let (status, content_type, message_body): (&str, &str, String) = match buffer {
         // assets
-        b if b.starts_with(b"GET / HTTP") => (OK_200, HTML.to_string()),
+        b if b.starts_with(b"GET / ") => (OK_200, "text/html", HTML.to_string()),
         // values
-        b if b.starts_with(b"GET /value HTTP") => {
+        b if b.starts_with(b"GET /value ") => {
             let st = state.clone();
             let st = st.read().unwrap();
 
-            (OK_200, format!("{{ \"value\": \"{}\" }}", st.value))
+            (OK_200, "application/json", format!("{{ \"value\": \"{}\" }}", st.value))
         }
-        b if b.starts_with(b"POST /value HTTP") => {
+        b if b.starts_with(b"POST /value ") => {
             let s = String::from_utf8(b.to_vec()).expect("error converting request");
             let s = s.trim_end_matches("\0"); // remove NUL
             let body = s.lines().last().expect("error getting request body");
@@ -58,13 +58,13 @@ fn handle_connection(mut stream: TcpStream, state: Arc<RwLock<State>>) {
                 expires_at: st.expires_at,
             };
 
-            (OK_200, format!("{{ \"value\": \"{}\" }}", body.to_string()))
+            (OK_200, "application/json", format!("{{ \"value\": \"{}\" }}", body.to_string()))
         }
         // 404
-        _ => (NOT_FOUND_404, "".to_string()),
+        _ => (NOT_FOUND_404, "text/plain", "".to_string()),
     };
 
-    let response = format!("HTTP/1.1 {}\r\n\r\n{}", status, message_body);
+    let response = format!("HTTP/1.1 {}\r\nContent-Type: {}\r\n\r\n{}", status, content_type, message_body);
 
     stream.write(response.as_bytes()).unwrap();
     stream.flush().unwrap();
