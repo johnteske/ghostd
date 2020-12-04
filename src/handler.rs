@@ -10,7 +10,7 @@ const NOT_FOUND_404: &str = "404 NOT FOUND";
 
 pub fn connection(mut stream: TcpStream, tx: Sender<String>, state: Arc<Mutex<String>>) {
     let mut buffer = [0; 1024];
-    stream.read(&mut buffer).unwrap();
+    let size = stream.read(&mut buffer).unwrap();
 
     let (status, content_type, message_body): (&str, &str, String) = match buffer {
         // assets
@@ -26,8 +26,7 @@ pub fn connection(mut stream: TcpStream, tx: Sender<String>, state: Arc<Mutex<St
             )
         }
         b if b.starts_with(b"POST /value ") => {
-            let s = String::from_utf8(b.to_vec()).expect("error converting request");
-            let s = s.trim_end_matches("\0"); // remove NUL
+            let s = String::from_utf8(b[0..size].to_vec()).expect("error converting request");
             let body = s.lines().last().expect("error getting request body");
 
             tx.send(body.to_string()).unwrap();
