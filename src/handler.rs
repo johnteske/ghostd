@@ -8,11 +8,7 @@ include!(concat!(env!("OUT_DIR"), "/html.rs"));
 const OK_200: &str = "200 OK";
 const NOT_FOUND_404: &str = "404 NOT FOUND";
 
-pub fn connection(
-    mut stream: TcpStream,
-    tx: Sender<String>,
-    state: Arc<Mutex<String>>,
-) {
+pub fn connection(mut stream: TcpStream, tx: Sender<String>, state: Arc<Mutex<String>>) {
     let mut buffer = [0; 1024];
     stream.read(&mut buffer).unwrap();
 
