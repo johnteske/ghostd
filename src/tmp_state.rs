@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-const TIMEOUT: Duration = Duration::from_secs(120);
+const TIMEOUT: Duration = Duration::from_secs(60);
 
 // https://github.com/johnteske/ghosty/issues/15
 // this wipes state on TIMEOUT--
