@@ -47,9 +47,15 @@ function setGetInput(value) {
 }
 
 function copyValue() {
-  selectAll(getInput);
-  document.execCommand("copy");
-  setMessage("copied!");
+  navigator.clipboard.writeText(getInput.value).then(
+    () => {
+      setMessage("copied!");
+    },
+    () => {
+      setMessage("error copying value");
+      img.className = "swirl";
+    }
+  );
 }
 
 function setValue() {
