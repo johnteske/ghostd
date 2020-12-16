@@ -57,7 +57,7 @@ function onEnter(fn) {
 }
 
 function setGetInput(value) {
-  img.className = ["", "UNSET"].includes(value) ? "" : "dance";
+  img.className = value === "" ? "" : "dance";
   getInput.value = value;
   selectAll(getInput);
 }
