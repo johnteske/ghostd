@@ -61,7 +61,7 @@ function copyValue() {
 function setValue() {
   fetch("/value", {
     method: "POST",
-    header: {
+    headers: {
       "Content-Type": "text",
     },
     body: setInput.value,
