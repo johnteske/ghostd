@@ -1,13 +1,29 @@
+const getGroup = document.querySelector("#get");
+const setGroup = document.querySelector("#set");
+
+if (getGroup == null || setGroup == null) {
+  setMessage("element not found");
+  throw "element not found";
+}
+
+getGroup.addEventListener("keydown", onEnter(copyValue));
+setGroup.addEventListener("keydown", onEnter(setValue));
+
+const getButton = getGroup.querySelector("button");
+getButton != null && getButton.addEventListener("click", copyValue);
+
+const setButton = setGroup.querySelector("button");
+setButton != null && setButton.addEventListener("click", setValue);
+
 const img = document.querySelector("img");
 const message = document.querySelector("pre");
-const getInput = document.querySelector("#get input");
-const setInput = document.querySelector("#set input");
+const getInput = getGroup.querySelector("input");
+const setInput = setGroup.querySelector("input");
 
-document.querySelector("#get").addEventListener("keydown", onEnter(copyValue));
-document.querySelector("#get button").addEventListener("click", copyValue);
-
-document.querySelector("#set").addEventListener("keydown", onEnter(setValue));
-document.querySelector("#set button").addEventListener("click", setValue);
+if (img == null || message == null || getInput == null || setInput == null) {
+  setMessage("element not found");
+  throw "element not found";
+}
 
 setMessage("loading...");
 
@@ -41,7 +57,7 @@ function onEnter(fn) {
 }
 
 function setGetInput(value) {
-  img.className = ["", "UNSET"].includes(value) ? "" : "dance";
+  img.className = value === "" ? "" : "dance";
   getInput.value = value;
   selectAll(getInput);
 }
@@ -61,14 +77,14 @@ function copyValue() {
 function setValue() {
   fetch("/value", {
     method: "POST",
-    header: {
+    headers: {
       "Content-Type": "text",
     },
     body: setInput.value,
   })
     .then((response) => response.json())
     .then((data) => {
-      setInput.value = null;
+      setInput.value = "";
       setGetInput(data.value);
       setMessage("set new value!");
     })
