@@ -1,4 +1,4 @@
-const elements = {}
+const elements = {};
 
 //const getGroup = document.querySelector("#get");
 //const setGroup = document.querySelector("#set");
@@ -47,7 +47,7 @@ enum Action {
   SetFail,
   IdleGet,
   IdleSet,
-  Idle
+  Idle,
 }
 
 let state = State.Start;
@@ -56,7 +56,7 @@ type Statemachine = {
   [key in State]: {
     fn: () => {};
     transitions: {
-      [key in Action]: State
+      [key in Action]: State;
     };
   };
 };
