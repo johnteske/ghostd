@@ -1,7 +1,6 @@
-use std::env;
-use std::fs;
 use std::path::Path;
-use std::str;
+use std::process::Command;
+use std::{env, fs, str};
 
 // TODO generate from file
 // TODO template this as well
@@ -14,7 +13,14 @@ fn main() {
     let src_dir = Path::new("src").join("assets");
 
     let html_content = get_file_content(&src_dir.join("index.html"));
+
+    Command::new("npx")
+        .arg("tsc")
+        .arg("--strict")
+        .spawn()
+        .expect("typescript compiler failed");
     let script_content = get_file_content(&src_dir.join("script.js"));
+
     let style_content = get_file_content(&src_dir.join("style.css"));
 
     let template = r###"const HTML: &str = r##"@@HTML@@"##;"###
@@ -25,7 +31,7 @@ fn main() {
     fs::write(&dest_path, template).unwrap();
 
     println!("cargo:rerun-if-changed=src/index.html");
-    println!("cargo:rerun-if-changed=src/script.js");
+    println!("cargo:rerun-if-changed=src/script.ts");
     println!("cargo:rerun-if-changed=src/style.css");
 }
 

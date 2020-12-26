@@ -1,2 +1,4 @@
 /target
+
+/src/assets/*.js
 /node_modules
