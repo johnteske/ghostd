@@ -6,11 +6,11 @@ if (getGroup == null || setGroup == null) {
   throw "element not found";
 }
 
-getGroup.addEventListener("keydown", onEnter(copyValue));
 setGroup.addEventListener("keydown", onEnter(setValue));
 
 const getButton = getGroup.querySelector("button");
 getButton != null && getButton.addEventListener("click", copyValue);
+getGroup.addEventListener("keydown", onEnter(copyValue));
 
 const setButton = setGroup.querySelector("button");
 setButton != null && setButton.addEventListener("click", setValue);
@@ -38,6 +38,20 @@ fetch("/value")
     setMessage("error getting value");
     img.className = "swirl";
   });
+
+navigator.permissions.query({ name: "clipboard-write" }).then((p) => {
+  const getButton = getGroup.querySelector("button");
+  if (p.state === "denied") {
+    return;
+  }
+
+  if (getButton != null) {
+    getButton.disabled = false;
+    getButton.addEventListener("click", copyValue);
+  }
+
+  getGroup.addEventListener("keydown", onEnter(copyValue));
+});
 
 //
 
