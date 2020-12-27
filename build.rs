@@ -30,9 +30,9 @@ fn main() {
         .replace("@@ICON@@", ICON);
     fs::write(&dest_path, template).unwrap();
 
-    println!("cargo:rerun-if-changed=src/index.html");
-    println!("cargo:rerun-if-changed=src/script.ts");
-    println!("cargo:rerun-if-changed=src/style.css");
+    println!("cargo:rerun-if-changed=src/assets/index.html");
+    println!("cargo:rerun-if-changed=src/assets/script.ts");
+    println!("cargo:rerun-if-changed=src/assets/style.css");
 }
 
 fn get_file_content(path: &std::path::PathBuf) -> String {
