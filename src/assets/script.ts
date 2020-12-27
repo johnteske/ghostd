@@ -94,6 +94,7 @@ transition(Action.OK);
 
 //
 
+// initialize UI event listeners
 function start() {
   // if any of the elements are null, fail
   if (!Object.keys(elements).every(Boolean)) {
