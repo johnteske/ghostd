@@ -68,8 +68,8 @@ const states: {
     message: "setting...",
   },
   [State.Final]: {
+    message: "something went terribly wrong",
     animation: "swirl",
-    message: "uh oh... something went terribly wrong",
   },
 };
 
@@ -77,7 +77,7 @@ function transition(action: Action) {
   const nextState = states[state].transitions?.[action];
 
   if (nextState == null) {
-    setMessage("not a valige transition!");
+    setMessage("not a valid transition!");
     return;
   }
 
@@ -169,7 +169,7 @@ function setMessage(str: string) {
   elements.message!.innerHTML = str;
 }
 
-type AnimationClassName = "dance" | "swirl" | "";
+type AnimationClassName = "swirl" | "";
 
 function setAnimation(animation: AnimationClassName = "") {
   elements.img!.className = animation;
