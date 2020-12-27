@@ -17,6 +17,7 @@ fn main() {
     Command::new("npx")
         .arg("tsc")
         .arg("--strict")
+        .arg("src/assets/script.ts")
         .spawn()
         .expect("typescript compiler failed");
     let script_content = get_file_content(&src_dir.join("script.js"));
