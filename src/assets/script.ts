@@ -1,3 +1,5 @@
+let canCopy = false;
+
 const elements: {
   img: Element | null;
   message: Element | null;
@@ -95,20 +97,33 @@ transition(Action.OK);
 //
 
 // initialize UI event listeners
-function start() {
+async function start() {
   // if any of the elements are null, fail
   if (!Object.keys(elements).every(Boolean)) {
     setMessage("failed to find some elements");
     return transition(Action.FAIL);
   }
 
-  elements.getGroup!.addEventListener(
-    "keydown",
-    onEnter(copyValue) as EventListener
-  ); // KeyboardEvent is not inferred from "keydown" type
-  elements
-    .getGroup!.querySelector("button")
-    ?.addEventListener("click", copyValue);
+  // ts complains that clipboard-write cannot be assigned to PermissionName but the spec says otherwise:
+  // https://w3c.github.io/permissions/#enumdef-permissionname
+  await navigator.permissions
+    .query({ name: "clipboard-write" as PermissionName })
+    .then((p) => {
+      if (p.state === "denied") {
+        elements.getButton!.disabled = true;
+        return;
+      }
+
+      canCopy = true;
+
+      elements.getGroup!.addEventListener(
+        "keydown",
+        onEnter(copyValue) as EventListener
+      ); // KeyboardEvent is not inferred from "keydown" type
+      elements
+        .getGroup!.querySelector("button")
+        ?.addEventListener("click", copyValue);
+    });
 
   const setValue = () => {
     transition(Action.SET);
@@ -177,7 +192,9 @@ function setAnimation(animation: AnimationClassName = "") {
 }
 
 function setButtonState(state: State) {
-  elements.getButton!.disabled = state !== State.Idle;
+  if (canCopy) {
+    elements.getButton!.disabled = state !== State.Idle;
+  }
   elements.setButton!.disabled = state !== State.Idle;
 }
 
