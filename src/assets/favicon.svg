@@ -1,0 +1,41 @@
+<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <style>
+    path, rect {
+      fill: black;
+    }
+    @media (prefers-color-scheme: dark) {
+      path, rect {
+        fill: white;
+      }
+    }
+  </style>
+  <defs>
+    <path id="pixel" d="m0,0 h1 v1 h-1 v-1" />
+    <g id="body-half">
+      <rect x="3" y="1" width="4" height="1" />
+      <use x="2" y="2" xlink:href="#pixel" />
+      <use x="1" y="3" xlink:href="#pixel" />
+      <rect x="0" y="4" width="1" height="11" />
+      <rect x="0" y="14" width="2" height="1" />
+      <use x="2" y="13" xlink:href="#pixel" />
+      <use x="3" y="12" xlink:href="#pixel" />
+      <use x="4" y="13" xlink:href="#pixel" />
+      <rect x="5" y="14" width="2" height="1" />
+    </g>
+    <g id="eye">
+      <use x="-1" y="-1" xlink:href="#pixel" />
+      <use x="1" y="-1" xlink:href="#pixel" />
+      <use x="0" y="0" xlink:href="#pixel" />
+      <use x="-1" y="1" xlink:href="#pixel" />
+      <use x="1" y="1" xlink:href="#pixel" />
+    </g>
+  </defs>
+  <use x="2" xlink:href="#body-half" />
+  <use xlink:href="#body-half" transform="translate(14 0) scale(-1 1)" />
+  <use x="5" y="6" xlink:href="#eye" /> 
+  <use x="10" y="6" xlink:href="#eye" /> 
+  <path id="mouth" d="
+    M4,9 h8 v1 h-2 v1 h-1 v1 h-1 v-1 h-1 v-1
+    L4,10 Z
+    " />
+</svg>

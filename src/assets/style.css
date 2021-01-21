@@ -1,10 +1,26 @@
+:root {
+  --fg-color: #111111;
+  --bg-color: white;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg-color: white;
+    --bg-color: #111111;
+  }
+}
+
 * {
+  outline: 0;
   margin: 1em;
+  border: 0;
   padding: 0;
 }
 
 body {
   max-width: 45rem;
+  background-color: var(--bg-color);
+  color: var(--fg-color);
 }
 
 img {
@@ -26,14 +42,26 @@ div {
 }
 input,
 button {
+  outline: 2px solid transparent;
+  border: 2px solid var(--fg-color);
   padding: 1em;
+
+  background-color: var(--bg-color);
+  font-family: monospace;
+  color: var(--fg-color);
+}
+input:hover,
+input:focus,
+button:hover,
+button:focus {
+  outline-color: var(--fg-color);
 }
 input {
   flex: 4;
-  font-family: monospace;
 }
 button {
   flex: 1;
+  cursor: pointer;
 }
 
 @keyframes float {
