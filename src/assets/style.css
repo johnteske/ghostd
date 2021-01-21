@@ -1,17 +1,26 @@
+:root {
+  --fg-color: #111111;
+  --bg-color: white;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg-color: white;
+    --bg-color: #111111;
+  }
+}
+
 * {
+  outline: 0;
   margin: 1em;
+  border: 0;
   padding: 0;
 }
 
 body {
   max-width: 45rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #111111;
-    color: white;
-  }
+  background-color: var(--bg-color);
+  color: var(--fg-color);
 }
 
 img {
@@ -31,16 +40,25 @@ pre {
 div {
   display: flex;
 }
-input,
-button {
+input, button {
+  outline: 1px solid transparent;
+  outline-offset: 1em;
+  border: 1px solid var(--fg-color);
   padding: 1em;
+
+  background-color: var(--bg-color);
+  font-family: monospace;
+  color: var(--fg-color);
+}
+input:hover, input:focus, button:hover, button:focus {
+  outline-color: var(--fg-color);
 }
 input {
   flex: 4;
-  font-family: monospace;
 }
 button {
   flex: 1;
+  cursor: pointer;
 }
 
 @keyframes float {
