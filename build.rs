@@ -2,9 +2,7 @@ use std::path::Path;
 use std::process::Command;
 use std::{env, fs, str};
 
-// TODO generate from file
-// TODO template this as well
-const ICON: &str = "data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//wAAznMAANWrAADb2wAA33sAAN47AADQCwAA3/sAANWrAADb2wAA1asAAN/7AADv9wAA9+8AAPgfAAD//wAA";
+use urlencoding::encode;
 
 fn main() {
     let out_dir = env::var_os("OUT_DIR").unwrap();
@@ -24,11 +22,14 @@ fn main() {
 
     let style_content = get_file_content(&src_dir.join("style.css"));
 
+    let icon_content = get_file_content(&src_dir.join("favicon.svg"));
+    let icon = format!("data:image/svg+xml,{}", encode(&icon_content));
+
     let template = r###"const HTML: &str = r##"@@HTML@@"##;"###
         .replace("@@HTML@@", &html_content)
         .replace("@@SCRIPT@@", &script_content)
         .replace("@@STYLE@@", &style_content)
-        .replace("@@ICON@@", ICON);
+        .replace("@@ICON@@", &icon);
     fs::write(&dest_path, template).unwrap();
 
     println!("cargo:rerun-if-changed=src/assets/index.html");
