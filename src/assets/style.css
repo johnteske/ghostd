@@ -40,17 +40,20 @@ pre {
 div {
   display: flex;
 }
-input, button {
-  outline: 1px solid transparent;
-  outline-offset: 1em;
-  border: 1px solid var(--fg-color);
+input,
+button {
+  outline: 2px solid transparent;
+  border: 2px solid var(--fg-color);
   padding: 1em;
 
   background-color: var(--bg-color);
   font-family: monospace;
   color: var(--fg-color);
 }
-input:hover, input:focus, button:hover, button:focus {
+input:hover,
+input:focus,
+button:hover,
+button:focus {
   outline-color: var(--fg-color);
 }
 input {
