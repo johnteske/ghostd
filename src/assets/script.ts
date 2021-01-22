@@ -218,5 +218,9 @@ function onEnter(fn: () => void) {
 }
 
 function toText(response: Response) {
-  return response.text();
+  if (response.ok) {
+    return response.text();
+  }
+
+  throw new Error(`${response.status}`)
 }
