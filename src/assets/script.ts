@@ -141,13 +141,13 @@ async function start() {
 
 async function getValue() {
   await fetch("/value")
-    .then(toJson)
+    .then(toText)
     .then((data) => {
       const getInput = elements.getInput!;
-      getInput.value = data.value;
+      getInput.value = data;
       getInput.focus();
       getInput.select();
-      getInput.setSelectionRange(0, data.value.length);
+      getInput.setSelectionRange(0, data.length);
       transition(Action.OK);
     })
     .catch((error) => {
@@ -161,11 +161,11 @@ async function postValue() {
   fetch("/value", {
     method: "POST",
     headers: {
-      "Content-Type": "text",
+      "Content-Type": "text/plain",
     },
     body: elements.setInput!.value,
   })
-    .then(toJson)
+    .then(toText)
     .then((data) => {
       elements.setInput!.value = "";
       setMessage("set new value!");
@@ -217,6 +217,6 @@ function onEnter(fn: () => void) {
   };
 }
 
-function toJson(response: Response) {
-  return response.json();
+function toText(response: Response) {
+  return response.text();
 }

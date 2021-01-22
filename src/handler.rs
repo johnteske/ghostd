@@ -19,11 +19,7 @@ pub fn connection(mut stream: TcpStream, tx: Sender<String>, state: Arc<Mutex<St
         b if b.starts_with(b"GET /value ") => {
             let value = state.lock().unwrap();
 
-            (
-                OK_200,
-                "application/json",
-                format!("{{ \"value\": \"{}\" }}", value),
-            )
+            (OK_200, "text/plain", value.to_string())
         }
         b if b.starts_with(b"POST /value ") => {
             let s = String::from_utf8(b[0..size].to_vec()).expect("error converting request");
@@ -31,11 +27,7 @@ pub fn connection(mut stream: TcpStream, tx: Sender<String>, state: Arc<Mutex<St
 
             tx.send(body.to_string()).unwrap();
 
-            (
-                OK_200,
-                "application/json",
-                format!("{{ \"value\": \"{}\" }}", body.to_string()),
-            )
+            (OK_200, "text/plain", body.to_string())
         }
         // 404
         _ => (NOT_FOUND_404, "text/plain", "".to_string()),
