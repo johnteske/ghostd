@@ -222,5 +222,5 @@ function toText(response: Response) {
     return response.text();
   }
 
-  throw new Error(`${response.status}`)
+  throw new Error(`${response.status}`);
 }
