@@ -32,28 +32,27 @@ mod filters {
     pub fn api(
         state: State,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        get_value(state.clone()).or(post_value(state.clone()))
+        warp::path("value").and(get_value(state.clone()).or(post_value(state.clone())))
     }
 
+    // GET /value
     fn get_value(
         state: State,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        warp::path("value")
-            .and(warp::get()) //.map(|| "bruh")
+        warp::get()
             .and(with_db(state))
             .and_then(handlers::get_value)
     }
 
+    // POST /value
     fn post_value(
         state: State,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        warp::path("value")
-            .and(warp::post())
+        warp::post()
             // Only accept bodies smaller than 16kb
             .and(warp::body::content_length_limit(1024 * 16))
             .and(with_db(state))
             .and_then(handlers::post_value)
-        //.map(|| "post")
     }
 }
 
