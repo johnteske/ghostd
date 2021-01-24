@@ -10,6 +10,7 @@ async fn main() {
     let state = Arc::new(Mutex::new("".to_string()));
     // let tx = tmp_state::start(Arc::clone(&state));
 
+    // TODO add all assets
     let index = warp::path::end()
         .and(warp::get())
         .map(|| warp::reply::html(HTML));
@@ -52,6 +53,7 @@ mod filters {
             // Only accept bodies smaller than 16kb
             .and(warp::body::content_length_limit(1024 * 16))
             .and(with_db(state))
+            .and(warp::body::bytes())
             .and_then(handlers::post_value)
     }
 }
@@ -59,12 +61,21 @@ mod filters {
 mod handlers {
     use super::State;
     use std::convert::Infallible;
+    use warp::http::StatusCode;
 
     pub async fn get_value(state: State) -> Result<impl warp::Reply, Infallible> {
-        Ok("todo, bruh")
+        let value = state.lock().unwrap();
+        Ok(value.to_string())
     }
 
-    pub async fn post_value(state: State) -> Result<impl warp::Reply, Infallible> {
-        Ok("todo, bruh")
+    pub async fn post_value(
+        state: State,
+        bytes: bytes::Bytes,
+    ) -> Result<impl warp::Reply, Infallible> {
+        // TODO is not temporary
+        let mut value = state.lock().unwrap();
+        let s = String::from_utf8(bytes.to_vec()).expect("found invalid UTF-8");
+        *value = s;
+        Ok(StatusCode::RESET_CONTENT)
     }
 }
