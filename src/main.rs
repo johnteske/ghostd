@@ -9,7 +9,7 @@ include!(concat!(env!("OUT_DIR"), "/html.rs"));
 
 #[tokio::main]
 async fn main() {
-    let state = Arc::new(Mutex::new("".to_string()));
+    let state = Arc::new(Mutex::new(String::new()));
 
     let tx = tmp_state::start(Arc::clone(&state));
 
