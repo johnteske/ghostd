@@ -1,28 +1,52 @@
-use std::io::prelude::*;
-use std::sync::mpsc::{channel, Receiver};
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::Duration;
+mod state {
+    use std::sync::{Arc, Mutex};
 
-const TIMEOUT: Duration = Duration::from_secs(3);
+    pub type State = Arc<Mutex<String>>;
 
-fn timer_new(rx: Arc<Mutex<Receiver<bool>>>, state: Arc<Mutex<String>>) {
-    println!("timer_new");
-    thread::spawn(move || loop {
-        match rx.lock().unwrap().recv_timeout(TIMEOUT) {
-            Ok(false) | Err(_) => {
-                println!("wipe it");
-                let mut value = state.lock().unwrap();
-                *value = "".to_string();
-                break;
+    pub fn new() -> State {
+        Arc::new(Mutex::new(String::new()))
+    }
+}
+
+mod timer {
+    use super::state::State;
+    use std::sync::mpsc::Receiver;
+    use std::sync::{Arc, Mutex};
+    use std::thread;
+    use std::time::Duration;
+
+    const TIMEOUT: Duration = Duration::from_secs(3);
+
+    // TODO this change requires timer to own rx
+    // pub fn channel() {
+    // let (tx, rx) = channel::<bool>();
+    // let rx = Arc::new(Mutex::new(rx));
+    // (tx, rx)
+    // }
+
+    pub fn new(rx: Arc<Mutex<Receiver<bool>>>, state: State) {
+        println!("timer start");
+        thread::spawn(move || loop {
+            match rx.lock().unwrap().recv_timeout(TIMEOUT) {
+                Ok(false) | Err(_) => {
+                    println!("timer end");
+                    let mut value = state.lock().unwrap();
+                    *value = "".to_string();
+                    break;
+                }
+                _ => {}
             }
-            _ => {}
-        }
-    });
+            println!("timer reset");
+        });
+    }
 }
 
 fn main() {
-    let state = Arc::new(Mutex::new(String::new()));
+    use std::io::prelude::*;
+    use std::sync::mpsc::channel;
+    use std::sync::{Arc, Mutex};
+
+    let state = state::new();
 
     let (tx, rx) = channel::<bool>();
     let rx = Arc::new(Mutex::new(rx));
@@ -30,21 +54,23 @@ fn main() {
     for line in std::io::stdin().lock().lines() {
         let mut old_value = state.lock().unwrap();
         let new_value = line.unwrap();
+
+        // Start, stop, or reset the timer
         match (old_value.is_empty(), new_value.is_empty()) {
             (_, true) => {
-                println!("new_value is empty. clear state, ignore timer");
-                tx.send(false).unwrap(); // TODO do not ignore timer--kill it (if it exists)
+                // TODO these messages stack up,
+                // which immediately wipes future writes
+                tx.send(false).unwrap();
             }
             (true, false) => {
-                println!("old_value is empty. start timer");
-                timer_new(Arc::clone(&rx), Arc::clone(&state));
+                timer::new(Arc::clone(&rx), Arc::clone(&state));
             }
             (false, false) => {
-                println!("old_value is not empty. send msg to restart timer");
                 tx.send(true).unwrap();
             }
         }
 
+        // Update state
         *old_value = new_value;
     }
 }
