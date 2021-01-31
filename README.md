@@ -1,4 +1,4 @@
-# ghosty
+# ghostd
 
 temporary shared clipboard server and UI, intended for (W)LAN use
 

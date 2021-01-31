@@ -5,7 +5,7 @@ use std::time::Duration;
 
 const TIMEOUT: Duration = Duration::from_secs(60);
 
-// https://github.com/johnteske/ghosty/issues/15
+// https://github.com/johnteske/ghostd/issues/15
 // this wipes state on TIMEOUT--
 // but also runs at an interval of TIMEOUT
 // (or less if it receives a new message)
