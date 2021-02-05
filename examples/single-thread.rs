@@ -12,7 +12,7 @@
 
 use std::net::TcpListener;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 fn main() {
     const DELAY: Duration = Duration::from_secs(1);
@@ -20,11 +20,14 @@ fn main() {
     let listener = TcpListener::bind("127.0.0.1:4321").unwrap();
     listener.set_nonblocking(true).unwrap();
 
+    let instant = Instant::now(); // TODO Option<Instant>, since timer may not always be running
+
     loop {
         match listener.accept() {
-            Ok((_socket, addr)) => println!("new client: {:?}", addr),
-            Err(e) => println!("couldn't get client: {:?}", e),
+            Ok((_socket, addr)) => println!("client: {:?}", addr),
+            Err(e) => println!("...: {:?}", e),
         }
+        println!("elapsed: {}", instant.elapsed().as_secs());
         thread::sleep(DELAY);
     }
 }
