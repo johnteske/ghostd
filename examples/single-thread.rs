@@ -25,8 +25,8 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 fn main() {
-    const MAX_LIFE: Duration = Duration::from_secs(5);
-    const DELAY: Duration = Duration::from_secs(1);
+    const TICK_RATE: Duration = Duration::from_secs(1);
+    const MAX_ELAPSED: Duration = Duration::from_secs(5);
 
     let listener = TcpListener::bind("127.0.0.1:4321").unwrap();
     listener.set_nonblocking(true).unwrap();
@@ -45,12 +45,12 @@ fn main() {
 
         if let Some(ts) = timestamp {
             println!("elapsed: {}", ts.elapsed().as_secs());
-            if ts.elapsed() >= MAX_LIFE {
-                println!("TOO OLD");
+            if ts.elapsed() >= MAX_ELAPSED {
+                println!("reached MAX_ELAPSED");
                 timestamp = None;
             }
         }
 
-        thread::sleep(DELAY);
+        thread::sleep(TICK_RATE);
     }
 }
