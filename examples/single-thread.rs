@@ -29,17 +29,16 @@
 use std::io::{ErrorKind, Read};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+
+const TICK_RATE: Duration = Duration::from_secs(1);
+const MAX_ELAPSED: Duration = Duration::from_secs(5);
 
 fn main() {
-    const TICK_RATE: Duration = Duration::from_secs(1);
-    const MAX_ELAPSED: Duration = Duration::from_secs(5);
-
     let listener = TcpListener::bind("127.0.0.1:4321").unwrap();
     listener.set_nonblocking(true).unwrap();
 
-    let mut state = String::new();
-    let mut timestamp: Option<Instant> = None;
+    let mut state = state::State::new(MAX_ELAPSED);
 
     loop {
         match listener.accept() {
@@ -48,28 +47,20 @@ fn main() {
                 println!("{}", start_line);
 
                 match start_line.get(0..4).unwrap() {
-                    "GET " => {}
+                    "GET " => {
+                        println!("state:\t{}", state.get());
+                    }
                     "POST" => {
-                        timestamp = Some(Instant::now());
-                        state = "something".to_string()
+                        state.set("something".to_string());
                     }
                     _ => {}
                 }
-
-                println!("state:\t{}", state);
             }
             Err(ref e) if e.kind() == ErrorKind::WouldBlock => {}
             Err(e) => panic!("{}", e),
         }
 
-        if let Some(ts) = timestamp {
-            println!("elapsed: {}", ts.elapsed().as_secs());
-            if ts.elapsed() >= MAX_ELAPSED {
-                println!("reached MAX_ELAPSED");
-                state.clear();
-                timestamp = None;
-            }
-        }
+        state.check();
 
         thread::sleep(TICK_RATE);
     }
@@ -81,4 +72,45 @@ fn parse_start_line(mut stream: TcpStream) -> String {
     let request = String::from_utf8(buffer.to_vec()).unwrap();
     let start_line = request.lines().next().unwrap();
     start_line.to_string()
+}
+
+mod state {
+    use std::time::{Duration, Instant};
+
+    pub struct State {
+        value: String,
+        timestamp: Option<Instant>,
+        max_elapsed: Duration,
+    }
+
+    impl State {
+        pub fn new(max_elapsed: Duration) -> State {
+            State {
+                value: String::new(),
+                timestamp: None,
+                max_elapsed,
+            }
+        }
+        pub fn get(&self) -> String {
+            String::new()
+        }
+        pub fn set(&mut self, new_value: String) {
+            self.timestamp = Some(Instant::now());
+            self.value = new_value;
+        }
+        fn clear(&mut self) {
+            self.value.clear();
+        }
+        pub fn check(&mut self) {
+            // check or clear
+            if let Some(ts) = self.timestamp {
+                println!("elapsed: {}", ts.elapsed().as_secs());
+                if ts.elapsed() >= self.max_elapsed {
+                    println!("reached MAX_ELAPSED");
+                    self.clear();
+                    self.timestamp = None;
+                }
+            }
+        }
+    }
 }
