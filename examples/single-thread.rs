@@ -2,29 +2,6 @@
 //!
 //! Run this example server and
 //! test the connection with `curl localhost:4321`
-//!
-//! Learnings/log:
-//!
-//! 1. Nonblocking stdin, for purposes of this example, would require another thread
-//! While this isn't particularly an issue in this example, it would add extraneous
-//! code--and I may as well use a TcpListener so the example code looks more like
-//! the end goal for clarity.
-//!
-//! 2. Timeout. At first I had thought about setting an Instant and adding an duration
-//! for the expiration Instant, then would compare against Instant::now(). Reading the
-//! documentation it looks like simple comparisons are supported, so only the max
-//! lifetime duration and timestamp are needed.
-//!
-//! 3. Error handling. I wanted to add a guard to the error checking to ensure I was
-//! only permitting expected errors. For the purposes of this example, any other error
-//! panics.
-//!
-//! 4. Parsing the request. The next step for me is to get and set state, for which I
-//! need to know the HTTP method. I added parse_start_line, not as a meaningful fn but
-//! mainly to abstract the parsing out of the main loop. In the real implementation it
-//! will be replaced by robust parsing.
-//!
-//! 5. State. With this single-threaded model, I don't believe a lock is required.
 
 use std::io::{ErrorKind, Read};
 use std::net::{TcpListener, TcpStream};
@@ -99,6 +76,7 @@ mod state {
             self.value = new_value;
         }
         fn clear(&mut self) {
+            self.timestamp = None;
             self.value.clear();
         }
         pub fn check(&mut self) {
@@ -108,7 +86,6 @@ mod state {
                 if ts.elapsed() >= self.max_elapsed {
                     println!("reached MAX_ELAPSED");
                     self.clear();
-                    self.timestamp = None;
                 }
             }
         }
