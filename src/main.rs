@@ -1,16 +1,20 @@
-use std::net::TcpListener;
-use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 
-mod handler;
-mod tmp_state;
+mod server;
+mod state;
+
+const TICK_RATE: Duration = Duration::from_secs(1);
+const MAX_ELAPSED: Duration = Duration::from_secs(5);
 
 fn main() {
-    let state = Arc::new(Mutex::new("".to_string()));
-    let tx = tmp_state::start(Arc::clone(&state));
+    let mut state = state::State::new(MAX_ELAPSED);
 
-    let listener = TcpListener::bind("0.0.0.0:4321").unwrap();
-    for stream in listener.incoming() {
-        let stream = stream.unwrap();
-        handler::connection(stream, tx.clone(), state.clone());
+    let server = server::Server::new("127.0.0.1:4322" /*, &mut state */);
+
+    loop {
+        state.check();
+        server.handle_nonblocking(&mut state);
+        thread::sleep(TICK_RATE);
     }
 }
