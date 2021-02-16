@@ -4,20 +4,15 @@ use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use super::state::State;
 
 pub struct Server {
-    //pub struct Server<'a> {
     listener: TcpListener,
-    // state: &'a mut State,
 }
 
 impl Server {
-    //impl<'a> Server<'a> {
     pub fn new(addr: impl ToSocketAddrs) -> Server {
-        //pub fn new(addr: impl ToSocketAddrs, state: &'a mut State) -> Server<'a> {
         let listener = TcpListener::bind(addr).unwrap();
         listener.set_nonblocking(true).unwrap();
 
         Server { listener }
-        //Server { listener, state }
     }
     pub fn handle_nonblocking(&self, state: &mut State) {
         match self.listener.accept() {
@@ -31,15 +26,13 @@ impl Server {
                         // 200 OK
                         // 404 empty or 410 GONE
                         println!("state:\t{}", state.get());
-                        //println!("state:\t{}", self.state.get());
                     }
                     "POST" => {
                         // 204 no content
                         // 411 length required
                         // 413 payload too large
                         // 415 unsupported media type
-                        state.set("something".to_string());
-                        //self.state.set("something".to_string());
+                        state.set("TODO body".to_string());
                     }
                     // 404 path--or 400?
                     // http 501 not impl

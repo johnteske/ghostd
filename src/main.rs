@@ -9,11 +9,10 @@ const MAX_ELAPSED: Duration = Duration::from_secs(5);
 
 fn main() {
     let mut state = state::State::new(MAX_ELAPSED);
-
-    let server = server::Server::new("127.0.0.1:4322" /*, &mut state */);
+    let server = server::Server::new("127.0.0.1:4321");
 
     loop {
-        state.check();
+        state.clear_if_expired();
         server.handle_nonblocking(&mut state);
         thread::sleep(TICK_RATE);
     }

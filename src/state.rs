@@ -25,12 +25,9 @@ impl State {
         self.timestamp = None;
         self.value.clear();
     }
-    // check_or_clear
-    pub fn check(&mut self) {
+    pub fn clear_if_expired(&mut self) {
         if let Some(ts) = self.timestamp {
-            println!("elapsed: {}", ts.elapsed().as_secs());
             if ts.elapsed() >= self.max_elapsed {
-                println!("reached MAX_ELAPSED");
                 self.clear();
             }
         }
