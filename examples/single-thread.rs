@@ -20,18 +20,30 @@ fn main() {
     loop {
         match listener.accept() {
             Ok((stream, _addr)) => {
+                // TODO parse, get method, path, body (content-length header, content text type)
                 let start_line = parse_start_line(stream);
                 println!("{}", start_line);
 
                 match start_line.get(0..4).unwrap() {
                     "GET " => {
+                        // 200 OK
+                        // 404 empty or 410 GONE
                         println!("state:\t{}", state.get());
                     }
                     "POST" => {
+                        // 204 no content
+                        // 411 length required
+                        // 413 payload too large
+                        // 415 unsupported media type
                         state.set("something".to_string());
                     }
+                    // 404 path--or 400?
+                    // http 501 not impl
                     _ => {}
                 }
+
+                //stream.write(response.as_bytes()).unwrap();
+                //stream.flush().unwrap();
             }
             Err(ref e) if e.kind() == ErrorKind::WouldBlock => {}
             Err(e) => panic!("{}", e),
@@ -79,8 +91,8 @@ mod state {
             self.timestamp = None;
             self.value.clear();
         }
+        // check_or_clear
         pub fn check(&mut self) {
-            // check or clear
             if let Some(ts) = self.timestamp {
                 println!("elapsed: {}", ts.elapsed().as_secs());
                 if ts.elapsed() >= self.max_elapsed {
