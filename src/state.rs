@@ -14,8 +14,8 @@ impl State {
             max_elapsed,
         }
     }
-    pub fn get(&self) -> String {
-        String::new()
+    pub fn get(&self) -> &String {
+        &self.value
     }
     pub fn set(&mut self, new_value: String) {
         self.timestamp = Some(Instant::now());
