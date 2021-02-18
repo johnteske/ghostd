@@ -4,7 +4,7 @@ use std::time::Duration;
 mod server;
 mod state;
 
-const TICK_RATE: Duration = Duration::from_secs(1);
+const TICK_RATE: Duration = Duration::from_millis(500);
 const MAX_ELAPSED: Duration = Duration::from_secs(5);
 
 fn main() {
