@@ -1,6 +1,7 @@
 // use http::{Response, StatusCode};
 use std::io::{ErrorKind, Read};
 use std::net::{TcpListener, ToSocketAddrs};
+use std::str::FromStr;
 
 use super::state::State;
 
@@ -24,19 +25,20 @@ impl Server {
                 stream.read(&mut buffer).unwrap();
 
                 let result = parse(buffer).unwrap(); // TODO handle parse error
-                println!("{:?}", result);
+                                                     //println!("{:?}", result);
 
-                match result.method.as_str() {
-                    "GET" => {
+                match result {
+                    Request::GET { path } => {
                         // 200 OK
                         // 404 empty or 410 GONE
                         println!("state:\t{}", state.get());
                     }
-                    "POST" => {
+                    Request::POST { .. } => {
                         // 204 no content
                         // 411 length required
                         // 413 payload too large
                         // 415 unsupported media type
+                        //println!("state:\t{}", result.body);
                         state.set("TODO body".to_string());
                     }
                     // 404 path--or 400?
@@ -54,30 +56,29 @@ impl Server {
     }
 }
 
-// TODO &str with lifetime, not String
-#[derive(Debug)]
-struct Parsed {
-    method: String,
-    path: String,
-    content_type: Option<String>,
-    content_length: Option<String>,
+enum Request {
+    GET { path: String },
+    POST { path: String, body: String },
 }
 
-fn parse(buffer: [u8; BUFFER_SIZE]) -> Result<Parsed, String> {
+fn parse(buffer: [u8; BUFFER_SIZE]) -> Result<Request, String> {
     let mut headers = [httparse::EMPTY_HEADER; 8];
     let mut req = httparse::Request::new(&mut headers);
     let result = req.parse(&buffer).unwrap();
 
-    if result.is_partial() {
-        return Err("not complete".to_string());
+    let path = req.path.expect("no path? this is cray").to_string();
+    match req.method.unwrap() {
+        "GET" => Ok(Request::GET { path }),
+        "POST" => {
+            let content_length =
+                parse_header(req.headers.iter().find(|&&h| h.name == "Content-Length")).unwrap(); // TODO error if not
+            let len = usize::from_str(&content_length).unwrap();
+            let body_byte_offset = result.unwrap(); // panics if is_partial
+            let body = String::from_utf8(buffer[body_byte_offset..len].to_vec()).unwrap();
+            Ok(Request::POST { path, body })
+        }
+        _ => Err("o ful".to_string()),
     }
-
-    Ok(Parsed {
-        method: req.method.unwrap().to_string(), // TODO this is required
-        path: req.path.unwrap().to_string(),     // TODO also required
-        content_type: parse_header(req.headers.iter().find(|&&h| h.name == "Content-Type")),
-        content_length: parse_header(req.headers.iter().find(|&&h| h.name == "Content-Length")),
-    })
 }
 
 fn parse_header(header: Option<&httparse::Header>) -> Option<String> {
