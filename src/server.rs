@@ -80,20 +80,21 @@ fn parse(buffer: [u8; BUFFER_SIZE]) -> Result<Request, ParseError> {
     req.parse(&buffer)?;
 
     let path = req.path.ok_or(ParseError::Path)?.to_string();
+    let mut headers = http::HeaderMap::new();
 
     match req.method.unwrap() {
         "GET" => Ok(Request::GET { path }),
         "POST" => {
-            let mut headers = http::HeaderMap::new();
-            for header in req.headers.iter() {
+            for header in req.headers {
                 match header::HeaderName::from_str(header.name) {
-                    Ok(header::CONTENT_LENGTH) | Ok(header::CONTENT_TYPE) => {}
+                    Ok(header_name) if header_name == header::CONTENT_LENGTH => {
+                        headers.insert(
+                            header_name,
+                            header::HeaderValue::from_bytes(header.value).unwrap(),
+                        );
+                    }
                     _ => continue,
                 }
-                headers.insert(
-                    header.name,
-                    header::HeaderValue::from_bytes(header.value).unwrap(),
-                );
             }
 
             // let content_length = headers.get(header::CONTENT_LENGTH).ok_or(ParseError::ContentLength)?.to_str().ok_or(ParseError::ContentLength)?;
