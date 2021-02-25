@@ -1,4 +1,4 @@
-// use http::{Response, StatusCode};
+use http::{header, Response, StatusCode};
 use std::io::{ErrorKind, Read};
 use std::net::{TcpListener, ToSocketAddrs};
 use std::str::FromStr;
@@ -28,18 +28,18 @@ impl Server {
                                                      //println!("{:?}", result);
 
                 match result {
-                    Request::GET { path } => {
+                    Request::GET { path: _ } => {
                         // 200 OK
                         // 404 empty or 410 GONE
                         println!("state:\t{}", state.get());
                     }
-                    Request::POST { .. } => {
+                    Request::POST { body, .. } => {
                         // 204 no content
                         // 411 length required
                         // 413 payload too large
                         // 415 unsupported media type
                         //println!("state:\t{}", result.body);
-                        state.set("TODO body".to_string());
+                        state.set(body);
                     } // 404 path--or 400?
                       // http 501 not impl
                 }
@@ -59,30 +59,49 @@ enum Request {
     POST { path: String, body: String },
 }
 
-fn parse(buffer: [u8; BUFFER_SIZE]) -> Result<Request, &'static str> {
+#[derive(Debug)]
+enum ParseError {
+    PartialRequest,
+    Path,
+    ContentLength,
+    ContentType,
+    Method,
+}
+
+impl From<httparse::Error> for ParseError {
+    fn from(_: httparse::Error) -> ParseError {
+        ParseError::PartialRequest
+    }
+}
+
+fn parse(buffer: [u8; BUFFER_SIZE]) -> Result<Request, ParseError> {
     let mut headers = [httparse::EMPTY_HEADER; 8];
     let mut req = httparse::Request::new(&mut headers);
-    let result = req.parse(&buffer).unwrap();
+    req.parse(&buffer)?;
 
-    let path = req.path.ok_or("error parsing path")?.to_string();
+    let path = req.path.ok_or(ParseError::Path)?.to_string();
 
     match req.method.unwrap() {
         "GET" => Ok(Request::GET { path }),
         "POST" => {
-            let content_length =
-                parse_header(req.headers.iter().find(|&&h| h.name == "Content-Length")).unwrap(); // TODO error if not
-            let len = usize::from_str(&content_length).unwrap();
-            let body_byte_offset = result.unwrap(); // panics if is_partial
-            let body = String::from_utf8(buffer[body_byte_offset..len].to_vec()).unwrap();
+            let mut headers = http::HeaderMap::new();
+            for header in req.headers.iter() {
+                match header::HeaderName::from_str(header.name) {
+                    Ok(header::CONTENT_LENGTH) | Ok(header::CONTENT_TYPE) => {}
+                    _ => continue,
+                }
+                headers.insert(
+                    header.name,
+                    header::HeaderValue::from_bytes(header.value).unwrap(),
+                );
+            }
+
+            // let content_length = headers.get(header::CONTENT_LENGTH).ok_or(ParseError::ContentLength)?.to_str().ok_or(ParseError::ContentLength)?;
+            // let body_byte_offset = result.unwrap(); // panics if is_partial
+            // let body = String::from_utf8(buffer[body_byte_offset..len].to_vec()).unwrap();
+            let body = "TODO".to_string();
             Ok(Request::POST { path, body })
         }
-        _ => Err("TODO"),
-    }
-}
-
-fn parse_header(header: Option<&httparse::Header>) -> Option<String> {
-    match header {
-        Some(h) => String::from_utf8(h.value.to_vec()).ok(),
-        None => None,
+        _ => Err(ParseError::Method),
     }
 }
