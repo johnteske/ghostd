@@ -40,10 +40,8 @@ impl Server {
                         // 415 unsupported media type
                         //println!("state:\t{}", result.body);
                         state.set("TODO body".to_string());
-                    }
-                    // 404 path--or 400?
-                    // http 501 not impl
-                    _ => {}
+                    } // 404 path--or 400?
+                      // http 501 not impl
                 }
 
                 // let response = Response::builder().body("TODO".to_string());
@@ -61,12 +59,13 @@ enum Request {
     POST { path: String, body: String },
 }
 
-fn parse(buffer: [u8; BUFFER_SIZE]) -> Result<Request, String> {
+fn parse(buffer: [u8; BUFFER_SIZE]) -> Result<Request, &'static str> {
     let mut headers = [httparse::EMPTY_HEADER; 8];
     let mut req = httparse::Request::new(&mut headers);
     let result = req.parse(&buffer).unwrap();
 
-    let path = req.path.expect("no path? this is cray").to_string();
+    let path = req.path.ok_or("error parsing path")?.to_string();
+
     match req.method.unwrap() {
         "GET" => Ok(Request::GET { path }),
         "POST" => {
@@ -77,7 +76,7 @@ fn parse(buffer: [u8; BUFFER_SIZE]) -> Result<Request, String> {
             let body = String::from_utf8(buffer[body_byte_offset..len].to_vec()).unwrap();
             Ok(Request::POST { path, body })
         }
-        _ => Err("o ful".to_string()),
+        _ => Err("TODO"),
     }
 }
 
