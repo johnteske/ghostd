@@ -26,7 +26,13 @@ async fn run() {
         Ok::<_, Error>(service_fn(move |req| async move {
             match (req.method(), req.uri().path()) {
                 (&Method::GET, "/value") => Ok::<_, Error>(Response::new(Body::from("get"))),
-                (&Method::POST, "/value") => Ok::<_, Error>(Response::new(Body::from("post"))),
+                (&Method::POST, "/value") => {
+                    tokio::task::spawn_local(async {
+                        tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
+                        println!("two sec later");
+                    });
+                    Ok::<_, Error>(Response::new(Body::from("post")))
+                }
                 _ => Ok(Response::builder()
                     .status(StatusCode::NOT_FOUND)
                     .body(NOTFOUND.into())
