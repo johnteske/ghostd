@@ -4,6 +4,7 @@
 
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Error, Method, Response, Server, StatusCode};
+use tokio::sync::mpsc;
 
 static NOTFOUND: &[u8] = b"Not Found";
 
@@ -20,25 +21,66 @@ fn main() {
 }
 
 async fn run() {
+    let (tx, mut rx) = mpsc::channel::<bool>(32);
+
+    // option 1 check every second
+    tokio::task::spawn_local(async move {
+        loop {
+            tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+            println!("one sec later");
+        }
+    });
+
+    // opt 2 set and cancel tokio::time::timeout, which expects a future to be passed -- NOT QUITE
+    // or tokio::time::sleep, which can be canceled by dropping, or can be reset with the reset
+    // method
+    tokio::task::spawn_local(async {
+        //        loop {
+        //
+        //        }
+    });
+    // opt 3 joinhandle abort https://docs.rs/tokio/1.2.0/tokio/task/struct.JoinHandle.html
+
+    // opt 4 messaging and select!
+    tokio::task::spawn_local(async move {
+        while let Some(message) = rx.recv().await {
+            println!("GOT = {}", message);
+        }
+        // loop {
+
+        // }
+    });
+
+    // morty!
+    //tx.send(true).await.unwrap();
+    //let tx2 = tx.clone();
+
     let addr = ([127, 0, 0, 1], 3000).into();
 
-    let make_service = make_service_fn(move |_| async move {
-        Ok::<_, Error>(service_fn(move |req| async move {
-            match (req.method(), req.uri().path()) {
-                (&Method::GET, "/value") => Ok::<_, Error>(Response::new(Body::from("get"))),
-                (&Method::POST, "/value") => {
-                    tokio::task::spawn_local(async {
-                        tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
-                        println!("two sec later");
-                    });
-                    Ok::<_, Error>(Response::new(Body::from("post")))
+    let make_service = make_service_fn(move |_| {
+        //tx2.send(true).await.unwrap();
+        let tx = tx.clone();
+
+        async move {
+            Ok::<_, Error>(service_fn(move |req| {
+                let tx = tx.clone();
+                async move {
+                    match (req.method(), req.uri().path()) {
+                        (&Method::GET, "/value") => {
+                            Ok::<_, Error>(Response::new(Body::from("get")))
+                        }
+                        (&Method::POST, "/value") => {
+                            tx.send(true).await.unwrap();
+                            Ok::<_, Error>(Response::new(Body::from("post")))
+                        }
+                        _ => Ok(Response::builder()
+                            .status(StatusCode::NOT_FOUND)
+                            .body(NOTFOUND.into())
+                            .unwrap()),
+                    }
                 }
-                _ => Ok(Response::builder()
-                    .status(StatusCode::NOT_FOUND)
-                    .body(NOTFOUND.into())
-                    .unwrap()),
-            }
-        }))
+            }))
+        }
     });
 
     let server = Server::bind(&addr).executor(LocalExec).serve(make_service);
