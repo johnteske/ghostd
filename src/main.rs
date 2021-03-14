@@ -8,6 +8,12 @@ use tokio::sync::mpsc;
 
 static NOTFOUND: &[u8] = b"Not Found";
 
+#[derive(Debug)]
+enum Message {
+    Start,
+    Stop,
+}
+
 fn main() {
     // Configure a runtime that runs everything on the current thread
     let rt = tokio::runtime::Builder::new_current_thread()
@@ -21,44 +27,17 @@ fn main() {
 }
 
 async fn run() {
-    let (tx, mut rx) = mpsc::channel::<bool>(32);
+    let (tx, mut rx) = mpsc::channel::<Message>(32);
 
-    // option 1 check every second
-    tokio::task::spawn_local(async move {
-        loop {
-            tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
-            println!("one sec later");
-        }
-    });
-
-    // opt 2 set and cancel tokio::time::timeout, which expects a future to be passed -- NOT QUITE
-    // or tokio::time::sleep, which can be canceled by dropping, or can be reset with the reset
-    // method
-    tokio::task::spawn_local(async {
-        //        loop {
-        //
-        //        }
-    });
-    // opt 3 joinhandle abort https://docs.rs/tokio/1.2.0/tokio/task/struct.JoinHandle.html
-
-    // opt 4 messaging and select!
     tokio::task::spawn_local(async move {
         while let Some(message) = rx.recv().await {
-            println!("GOT = {}", message);
+            println!("GOT = {:?}", message);
         }
-        // loop {
-
-        // }
     });
-
-    // morty!
-    //tx.send(true).await.unwrap();
-    //let tx2 = tx.clone();
 
     let addr = ([127, 0, 0, 1], 3000).into();
 
     let make_service = make_service_fn(move |_| {
-        //tx2.send(true).await.unwrap();
         let tx = tx.clone();
 
         async move {
@@ -70,7 +49,9 @@ async fn run() {
                             Ok::<_, Error>(Response::new(Body::from("get")))
                         }
                         (&Method::POST, "/value") => {
-                            tx.send(true).await.unwrap();
+                            tx.send(Message::Start).await.unwrap();
+                            // TODO set the timeout here, although that means the thread can't be
+                            // dropped from here
                             Ok::<_, Error>(Response::new(Body::from("post")))
                         }
                         _ => Ok(Response::builder()
