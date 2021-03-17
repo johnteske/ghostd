@@ -5,13 +5,19 @@
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Error, Method, Response, Server, StatusCode};
 use tokio::sync::mpsc;
+use std::time::Duration;
 
+mod state;
+use state::State;
+
+const TTL: Duration = Duration::from_secs(5);
 static NOTFOUND: &[u8] = b"Not Found";
 
 #[derive(Debug)]
 enum Message {
     Start,
-    Stop,
+    //Check,
+    //Stop,
 }
 
 fn main() {
@@ -29,10 +35,23 @@ fn main() {
 async fn run() {
     let (tx, mut rx) = mpsc::channel::<Message>(32);
 
+    let mut state = State::new(TTL);
+    // let timeout: Option<tokio::time::Instant>;
+
+    // let timer_task =
     tokio::task::spawn_local(async move {
         while let Some(message) = rx.recv().await {
+            // TODO handle messages for state
             println!("GOT = {:?}", message);
         }
+    });
+
+    tokio::task::spawn_local(async move {
+        loop {
+           state.clear_if_expired();
+        }
+        // TODO send message to clear_if_expired
+        // state.clear_if_expired();
     });
 
     let addr = ([127, 0, 0, 1], 3000).into();
@@ -46,12 +65,14 @@ async fn run() {
                 async move {
                     match (req.method(), req.uri().path()) {
                         (&Method::GET, "/value") => {
+                            // state.get();
                             Ok::<_, Error>(Response::new(Body::from("get")))
                         }
                         (&Method::POST, "/value") => {
                             tx.send(Message::Start).await.unwrap();
                             // TODO set the timeout here, although that means the thread can't be
                             // dropped from here
+                            // state.set();
                             Ok::<_, Error>(Response::new(Body::from("post")))
                         }
                         _ => Ok(Response::builder()
@@ -72,6 +93,7 @@ async fn run() {
     if let Err(e) = server.await {
         eprintln!("server error: {}", e);
     }
+    //timer_task.join().unwrap()
 }
 
 // Since the Server needs to spawn some background tasks, we needed
