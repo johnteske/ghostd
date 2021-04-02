@@ -1,11 +1,10 @@
-// https://github.com/hyperium/hyper/blob/master/examples/single_threaded.rs
-// https://github.com/hyperium/hyper/blob/master/examples/web_api.rs
-#![deny(warnings)]
+//#![deny(warnings)]
 
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Error, Method, Response, Server, StatusCode};
 use tokio::sync::mpsc;
-use std::time::Duration;
+use tokio::sync::oneshot;
+use tokio::time::{sleep, Duration};
 
 mod state;
 use state::State;
@@ -13,45 +12,52 @@ use state::State;
 const TTL: Duration = Duration::from_secs(5);
 static NOTFOUND: &[u8] = b"Not Found";
 
+type Responder<T> = oneshot::Sender<T>;
+
 #[derive(Debug)]
 enum Message {
-    Start,
-    //Check,
-    //Stop,
+    Get { resp: Responder<String> },
+    Set { value: String, resp: Responder<()> },
+    Check { resp: Responder<()> },
 }
 
-fn main() {
-    // Configure a runtime that runs everything on the current thread
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .expect("build runtime");
-
-    // Combine it with a `LocalSet,  which means it can spawn !Send futures...
-    let local = tokio::task::LocalSet::new();
-    local.block_on(&rt, run());
-}
-
-async fn run() {
+#[tokio::main(flavor = "current_thread")]
+async fn main() {
+    // TODO this channel is used for state--how to communicate that?
     let (tx, mut rx) = mpsc::channel::<Message>(32);
-
     let mut state = State::new(TTL);
-    // let timeout: Option<tokio::time::Instant>;
 
-    // let timer_task =
-    tokio::task::spawn_local(async move {
-        while let Some(message) = rx.recv().await {
-            // TODO handle messages for state
-            println!("GOT = {:?}", message);
+    tokio::task::spawn(async move {
+        while let Some(msg) = rx.recv().await {
+            match msg {
+                Message::Get { resp } => {
+                    let res = state.get();
+                    let _ = resp.send(res.to_string());
+                }
+                Message::Set { value, resp } => {
+                    state.set(value);
+                    let _ = resp.send(());
+                }
+                Message::Check { resp } => {
+                    state.clear_if_expired();
+                    let _ = resp.send(());
+                }
+            }
         }
     });
 
-    tokio::task::spawn_local(async move {
+    let timer_tx = tx.clone();
+    tokio::task::spawn(async move {
         loop {
-           state.clear_if_expired();
+            sleep(Duration::from_millis(1000)).await;
+            let (resp_tx, resp_rx) = oneshot::channel();
+            timer_tx
+                .send(Message::Check { resp: resp_tx })
+                .await
+                .unwrap();
+            let res = resp_rx.await;
+            println!("GOT = {:?}", res);
         }
-        // TODO send message to clear_if_expired
-        // state.clear_if_expired();
     });
 
     let addr = ([127, 0, 0, 1], 3000).into();
@@ -65,14 +71,26 @@ async fn run() {
                 async move {
                     match (req.method(), req.uri().path()) {
                         (&Method::GET, "/value") => {
-                            // state.get();
-                            Ok::<_, Error>(Response::new(Body::from("get")))
+                            let (resp_tx, resp_rx) = oneshot::channel();
+
+                            tx.send(Message::Get { resp: resp_tx }).await.unwrap();
+                            let res = resp_rx.await;
+                            println!("GOT = {:?}", res);
+
+                            Ok::<_, Error>(Response::new(Body::from("asd")))
                         }
                         (&Method::POST, "/value") => {
-                            tx.send(Message::Start).await.unwrap();
-                            // TODO set the timeout here, although that means the thread can't be
-                            // dropped from here
-                            // state.set();
+                            let (resp_tx, resp_rx) = oneshot::channel();
+                            tx.send(Message::Set {
+                                value: "todo".to_string(),
+                                resp: resp_tx,
+                            })
+                            .await
+                            .unwrap();
+
+                            let res = resp_rx.await;
+                            println!("GOT = {:?}", res);
+
                             Ok::<_, Error>(Response::new(Body::from("post")))
                         }
                         _ => Ok(Response::builder()
@@ -85,28 +103,11 @@ async fn run() {
         }
     });
 
-    let server = Server::bind(&addr).executor(LocalExec).serve(make_service);
+    let server = Server::bind(&addr).serve(make_service);
 
     println!("Listening on http://{}", addr);
 
-    // The server would block on current thread to await !Send futures.
     if let Err(e) = server.await {
         eprintln!("server error: {}", e);
-    }
-    //timer_task.join().unwrap()
-}
-
-// Since the Server needs to spawn some background tasks, we needed
-// to configure an Executor that can spawn !Send futures...
-#[derive(Clone, Copy, Debug)]
-struct LocalExec;
-
-impl<F> hyper::rt::Executor<F> for LocalExec
-where
-    F: std::future::Future + 'static, // not requiring `Send`
-{
-    fn execute(&self, fut: F) {
-        // This will spawn into the currently running `LocalSet`.
-        tokio::task::spawn_local(fut);
     }
 }
