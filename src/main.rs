@@ -31,8 +31,8 @@ async fn main() {
         while let Some(msg) = rx.recv().await {
             match msg {
                 Message::Get { resp } => {
-                    let res = state.get();
-                    let _ = resp.send(res.to_string());
+                    let value = state.get();
+                    let _ = resp.send(value.to_owned());
                 }
                 Message::Set { value, resp } => {
                     state.set(value);
@@ -62,6 +62,7 @@ async fn main() {
 
     let addr = ([127, 0, 0, 1], 3000).into();
 
+    // TODO impl hyper::Service for ___
     let make_service = make_service_fn(move |_| {
         let tx = tx.clone();
 
@@ -77,12 +78,17 @@ async fn main() {
                             let res = resp_rx.await;
                             println!("GOT = {:?}", res);
 
-                            Ok::<_, Error>(Response::new(Body::from("asd")))
+                            Ok::<_, Error>(Response::new(Body::from(res.unwrap())))
                         }
                         (&Method::POST, "/value") => {
+                            let bytes = hyper::body::to_bytes(req.into_body()).await?;
+                            let body = String::from_utf8(bytes.to_vec())
+                                .expect("response was not valid utf-8");
+                            println!("BODY = {:?}", body);
+
                             let (resp_tx, resp_rx) = oneshot::channel();
                             tx.send(Message::Set {
-                                value: "todo".to_string(),
+                                value: body.to_string(),
                                 resp: resp_tx,
                             })
                             .await
@@ -91,7 +97,7 @@ async fn main() {
                             let res = resp_rx.await;
                             println!("GOT = {:?}", res);
 
-                            Ok::<_, Error>(Response::new(Body::from("post")))
+                            Ok::<_, Error>(Response::new(Body::from("")))
                         }
                         _ => Ok(Response::builder()
                             .status(StatusCode::NOT_FOUND)
