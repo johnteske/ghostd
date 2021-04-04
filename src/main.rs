@@ -2,50 +2,22 @@
 
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Error, Method, Response, Server, StatusCode};
-use tokio::sync::mpsc;
 use tokio::sync::oneshot;
 use tokio::time::{sleep, Duration};
 
 mod state;
-use state::State;
+use state::{Message, State};
 
 const TTL: Duration = Duration::from_secs(5);
 static NOTFOUND: &[u8] = b"Not Found";
 
-type Responder<T> = oneshot::Sender<T>;
-
-#[derive(Debug)]
-enum Message {
-    Get { resp: Responder<String> },
-    Set { value: String, resp: Responder<()> },
-    Check { resp: Responder<()> },
-}
-
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    // TODO this channel is used for state--how to communicate that?
-    let (tx, mut rx) = mpsc::channel::<Message>(32);
-    let mut state = State::new(TTL);
+    let st = State::new(TTL);
+    let (_, tx) = state::run(st);
 
-    tokio::task::spawn(async move {
-        while let Some(msg) = rx.recv().await {
-            match msg {
-                Message::Get { resp } => {
-                    let value = state.get();
-                    let _ = resp.send(value.to_owned());
-                }
-                Message::Set { value, resp } => {
-                    state.set(value);
-                    let _ = resp.send(());
-                }
-                Message::Check { resp } => {
-                    state.clear_if_expired();
-                    let _ = resp.send(());
-                }
-            }
-        }
-    });
-
+    // what if state owns this and can start/stop
+    // OR sleep.reset could be used
     let timer_tx = tx.clone();
     tokio::task::spawn(async move {
         loop {

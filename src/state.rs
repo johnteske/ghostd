@@ -1,5 +1,18 @@
 use std::time::{Duration, Instant};
+use tokio::sync::mpsc::Sender;
+use tokio::sync::{mpsc, oneshot};
 
+type Responder<T> = oneshot::Sender<T>;
+
+#[derive(Debug)]
+pub enum Message {
+    Get { resp: Responder<String> },
+    Set { value: String, resp: Responder<()> },
+    Check { resp: Responder<()> },
+}
+
+// TODO max access count?
+//
 pub struct State {
     value: String,
     timestamp: Option<Instant>,
@@ -32,4 +45,29 @@ impl State {
             }
         }
     }
+}
+
+pub fn run(mut state: State) -> (tokio::task::JoinHandle<()>, Sender<Message>) {
+    let (tx, mut rx) = mpsc::channel::<Message>(4);
+
+    let handle = tokio::task::spawn(async move {
+        while let Some(msg) = rx.recv().await {
+            match msg {
+                Message::Get { resp } => {
+                    let value = state.get();
+                    let _ = resp.send(value.to_owned());
+                }
+                Message::Set { value, resp } => {
+                    state.set(value);
+                    let _ = resp.send(());
+                }
+                Message::Check { resp } => {
+                    state.clear_if_expired();
+                    let _ = resp.send(());
+                }
+            }
+        }
+    });
+
+    return (handle, tx);
 }
