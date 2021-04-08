@@ -16,22 +16,6 @@ async fn main() {
     let st = State::new(TTL);
     let (_, tx) = state::run(st);
 
-    // what if state owns this and can start/stop
-    // OR sleep.reset could be used
-    let timer_tx = tx.clone();
-    tokio::task::spawn(async move {
-        loop {
-            sleep(Duration::from_millis(1000)).await;
-            let (resp_tx, resp_rx) = oneshot::channel();
-            timer_tx
-                .send(Message::Check { resp: resp_tx })
-                .await
-                .unwrap();
-            let res = resp_rx.await;
-            println!("GOT = {:?}", res);
-        }
-    });
-
     let addr = ([127, 0, 0, 1], 3000).into();
 
     // TODO impl hyper::Service for ___

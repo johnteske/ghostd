@@ -1,4 +1,4 @@
-use std::time::{Duration, Instant};
+use tokio::time::{sleep, Duration, Instant};
 use tokio::sync::mpsc::Sender;
 use tokio::sync::{mpsc, oneshot};
 
@@ -49,6 +49,20 @@ impl State {
 
 pub fn run(mut state: State) -> (tokio::task::JoinHandle<()>, Sender<Message>) {
     let (tx, mut rx) = mpsc::channel::<Message>(4);
+
+    let timer_tx = tx.clone();
+    tokio::task::spawn(async move {
+        loop {
+            sleep(Duration::from_millis(1000)).await;
+            let (resp_tx, resp_rx) = oneshot::channel();
+            timer_tx
+                .send(Message::Check { resp: resp_tx })
+                .await
+                .unwrap();
+            let res = resp_rx.await;
+            println!("GOT = {:?}", res);
+        }
+    });
 
     let handle = tokio::task::spawn(async move {
         while let Some(msg) = rx.recv().await {
