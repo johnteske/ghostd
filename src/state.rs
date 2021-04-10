@@ -47,6 +47,8 @@ impl State {
     }
 }
 
+// TODO this is split out, and not a method on state,
+// due to conflicting lifetime requirements in the handler
 pub fn run(mut state: State) -> (tokio::task::JoinHandle<()>, Sender<Message>) {
     let (tx, mut rx) = mpsc::channel::<Message>(4);
 

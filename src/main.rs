@@ -3,7 +3,7 @@
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Error, Method, Response, Server, StatusCode};
 use tokio::sync::oneshot;
-use tokio::time::{sleep, Duration};
+use tokio::time::Duration;
 
 mod state;
 use state::{Message, State};
