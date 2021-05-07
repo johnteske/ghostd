@@ -1,6 +1,6 @@
-use tokio::time::{sleep, Duration, Instant};
 use tokio::sync::mpsc::Sender;
 use tokio::sync::{mpsc, oneshot};
+use tokio::time::{sleep, Duration, Instant};
 
 type Responder<T> = oneshot::Sender<T>;
 
@@ -13,7 +13,7 @@ pub enum Message {
 
 // TODO max access count?
 //
-pub struct State {
+struct State {
     value: String,
     timestamp: Option<Instant>,
     max_elapsed: Duration,
@@ -47,12 +47,8 @@ impl State {
     }
 }
 
-// TODO this is split out, and not a method on state,
-// due to conflicting lifetime requirements in the handler
-// TODO OR is this a better choice anyway?
-// the State struct is one thing,
-// and the thread and timer and Message handling is another
-pub fn run(mut state: State) -> (tokio::task::JoinHandle<()>, Sender<Message>) {
+pub fn start(max_elapsed: Duration) -> (tokio::task::JoinHandle<()>, Sender<Message>) {
+    let mut state = State::new(max_elapsed);
     let (tx, mut rx) = mpsc::channel::<Message>(4);
 
     let timer_tx = tx.clone();

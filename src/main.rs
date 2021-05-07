@@ -6,15 +6,14 @@ use tokio::sync::oneshot;
 use tokio::time::Duration;
 
 mod state;
-use state::{Message, State};
+use state::Message;
 
 const TTL: Duration = Duration::from_secs(5);
 static NOTFOUND: &[u8] = b"Not Found";
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    let st = State::new(TTL);
-    let (_, tx) = state::run(st);
+    let (_, tx) = state::start(TTL);
 
     let addr = ([127, 0, 0, 1], 3000).into();
 
