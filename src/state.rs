@@ -84,5 +84,5 @@ pub fn start(max_elapsed: Duration) -> (tokio::task::JoinHandle<()>, Sender<Mess
         }
     });
 
-    return (handle, tx);
+    (handle, tx)
 }
