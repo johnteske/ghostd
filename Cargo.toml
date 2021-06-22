@@ -7,8 +7,8 @@ publish = false
 edition = "2018"
 
 [dependencies]
-hyper = { version = "0.14.4", features = ["full"] }
 tokio = { version = "1.4.0", features = ["full"] }
+warp = "0.3"
 
 [build-dependencies]
 urlencoding = "1.1.1"
