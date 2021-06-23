@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::oneshot;
-use warp::{Filter, Rejection, Reply};
+use warp::{http::StatusCode, Filter, Rejection, Reply};
 
 use super::state::Message;
 
@@ -19,8 +19,8 @@ pub fn create(
     let get = warp::get().and(with_tx.clone()).and_then(get_handler);
 
     let post = warp::post()
-        .and(with_tx.clone())
-        .and(body_bytes.clone())
+        .and(with_tx)
+        .and(body_bytes)
         .and_then(post_handler);
 
     let handlers = get.or(post);
@@ -31,9 +31,8 @@ pub fn create(
 async fn get_handler(tx: Sender<Message>) -> Result<impl Reply, Rejection> {
     let (resp_tx, resp_rx) = oneshot::channel();
 
-    match tx.send(Message::Get { resp: resp_tx }).await {
-        Ok(_) => {}
-        Err(_) => return Err(warp::reject::custom(MessageFailed)),
+    if tx.send(Message::Get { resp: resp_tx }).await.is_err() {
+        return Err(warp::reject::custom(MessageFailed));
     };
 
     match resp_rx.await {
@@ -47,19 +46,19 @@ async fn post_handler(tx: Sender<Message>, bytes: Bytes) -> Result<impl Reply, R
 
     let body = String::from_utf8(bytes.to_vec()).unwrap();
 
-    match tx
+    if tx
         .send(Message::Set {
             value: body,
             resp: resp_tx,
         })
         .await
+        .is_err()
     {
-        Ok(_) => {}
-        Err(_) => return Err(warp::reject::custom(MessageFailed)),
+        return Err(warp::reject::custom(MessageFailed));
     };
 
     match resp_rx.await {
-        Ok(_) => Ok(warp::reply()),
+        Ok(_) => Ok(StatusCode::NO_CONTENT),
         Err(_) => Err(warp::reject::custom(MessageFailed)),
     }
 }
