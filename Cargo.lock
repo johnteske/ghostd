@@ -188,6 +188,7 @@ dependencies = [
 name = "ghostd"
 version = "0.3.6"
 dependencies = [
+ "bytes",
  "tokio",
  "urlencoding",
  "warp",
