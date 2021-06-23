@@ -37,12 +37,8 @@ fn main() {
     println!("cargo:rerun-if-changed=src/assets/style.css");
 }
 
-fn get_file_content(path: &std::path::PathBuf) -> String {
-    let path_str = match path.to_str() {
-        Some(s) => s,
-        None => "path",
-    };
-    let file = fs::read(&path).expect(&format!("error reading {}", path_str));
-    let content = str::from_utf8(&file).expect(&format!("error parsing {}", path_str));
+fn get_file_content(path: &std::path::Path) -> String {
+    let file = fs::read(&path).expect("error reading file");
+    let content = str::from_utf8(&file).expect("error parsing file");
     String::from(content)
 }
