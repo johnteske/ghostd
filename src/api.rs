@@ -23,7 +23,9 @@ pub fn create(
         .and(body_bytes.clone())
         .and_then(post_handler);
 
-    warp::path("value").and(get.or(post))
+    let handlers = get.or(post);
+
+    warp::path("value").and(handlers)
 }
 
 async fn get_handler(tx: Sender<Message>) -> Result<impl Reply, Rejection> {

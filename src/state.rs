@@ -60,8 +60,7 @@ pub fn start(max_elapsed: Duration) -> (tokio::task::JoinHandle<()>, Sender<Mess
                 .send(Message::Check { resp: resp_tx })
                 .await
                 .unwrap();
-            let res = resp_rx.await;
-            println!("GOT = {:?}", res);
+            let _ = resp_rx.await;
         }
     });
 
