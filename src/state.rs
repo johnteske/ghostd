@@ -56,10 +56,7 @@ pub fn start(max_elapsed: Duration) -> (tokio::task::JoinHandle<()>, Sender<Mess
         loop {
             sleep(Duration::from_millis(1000)).await;
             let (resp_tx, resp_rx) = oneshot::channel();
-            timer_tx
-                .send(Message::Check { resp: resp_tx })
-                .await
-                .unwrap();
+            let _ = timer_tx.send(Message::Check { resp: resp_tx }).await;
             let _ = resp_rx.await;
         }
     });

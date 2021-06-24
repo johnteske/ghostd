@@ -5,11 +5,6 @@ use warp::{http::StatusCode, Filter, Rejection, Reply};
 
 use super::state::Message;
 
-#[derive(Debug)]
-struct MessageFailed;
-
-impl warp::reject::Reject for MessageFailed {}
-
 pub fn create(
     tx: Sender<Message>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -31,34 +26,26 @@ pub fn create(
 async fn get_handler(tx: Sender<Message>) -> Result<impl Reply, Rejection> {
     let (resp_tx, resp_rx) = oneshot::channel();
 
-    if tx.send(Message::Get { resp: resp_tx }).await.is_err() {
-        return Err(warp::reject::custom(MessageFailed));
-    };
+    tx.send(Message::Get { resp: resp_tx })
+        .await
+        .expect("tx failed");
 
-    match resp_rx.await {
-        Ok(res) => Ok(res),
-        Err(_) => Err(warp::reject::custom(MessageFailed)),
-    }
+    let res = resp_rx.await.expect("rx failed");
+    Ok(res)
 }
 
 async fn post_handler(tx: Sender<Message>, bytes: Bytes) -> Result<impl Reply, Rejection> {
     let (resp_tx, resp_rx) = oneshot::channel();
 
-    let body = String::from_utf8(bytes.to_vec()).unwrap();
+    let body = String::from_utf8(bytes.to_vec()).expect("parsing body failed");
 
-    if tx
-        .send(Message::Set {
-            value: body,
-            resp: resp_tx,
-        })
-        .await
-        .is_err()
-    {
-        return Err(warp::reject::custom(MessageFailed));
-    };
+    tx.send(Message::Set {
+        value: body,
+        resp: resp_tx,
+    })
+    .await
+    .expect("tx failed");
 
-    match resp_rx.await {
-        Ok(_) => Ok(StatusCode::NO_CONTENT),
-        Err(_) => Err(warp::reject::custom(MessageFailed)),
-    }
+    let _ = resp_rx.await.expect("rx failed");
+    Ok(StatusCode::NO_CONTENT)
 }
