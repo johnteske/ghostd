@@ -26,12 +26,14 @@ pub fn create(
 async fn get_handler(tx: Sender<Message>) -> Result<impl Reply, Rejection> {
     let (resp_tx, resp_rx) = oneshot::channel();
 
-    tx.send(Message::Get { resp: resp_tx })
-        .await
-        .expect("tx failed");
+    if tx.send(Message::Get { resp: resp_tx }).await.is_err() {
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
+    }
 
-    let res = resp_rx.await.expect("rx failed");
-    Ok(res)
+    match resp_rx.await {
+        Ok(res) => Ok(res.into_response()),
+        Err(_) => Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response()),
+    }
 }
 
 async fn post_handler(tx: Sender<Message>, bytes: Bytes) -> Result<impl Reply, Rejection> {
@@ -39,13 +41,19 @@ async fn post_handler(tx: Sender<Message>, bytes: Bytes) -> Result<impl Reply, R
 
     let body = String::from_utf8(bytes.to_vec()).expect("parsing body failed");
 
-    tx.send(Message::Set {
-        value: body,
-        resp: resp_tx,
-    })
-    .await
-    .expect("tx failed");
+    if tx
+        .send(Message::Set {
+            value: body,
+            resp: resp_tx,
+        })
+        .await
+        .is_err()
+    {
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR);
+    }
 
-    let _ = resp_rx.await.expect("rx failed");
-    Ok(StatusCode::NO_CONTENT)
+    match resp_rx.await {
+        Ok(_) => Ok(StatusCode::NO_CONTENT),
+        Err(_) => Ok(StatusCode::INTERNAL_SERVER_ERROR),
+    }
 }
