@@ -39,7 +39,10 @@ async fn get_handler(tx: Sender<Message>) -> Result<impl Reply, Rejection> {
 async fn post_handler(tx: Sender<Message>, bytes: Bytes) -> Result<impl Reply, Rejection> {
     let (resp_tx, resp_rx) = oneshot::channel();
 
-    let body = String::from_utf8(bytes.to_vec()).expect("parsing body failed");
+    let body = match String::from_utf8(bytes.to_vec()) {
+        Ok(body) => body,
+        Err(_) => return Ok(StatusCode::BAD_REQUEST),
+    };
 
     if tx
         .send(Message::Set {
