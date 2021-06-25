@@ -1,12 +1,9 @@
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 use bytes::Bytes;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
 
-use super::state::State;
-
-type Db = Arc<Mutex<State>>;
+use super::state::Db;
 
 pub fn create(db: Db) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     let db = warp::any().map(move || Arc::clone(&db));

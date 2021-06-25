@@ -4,10 +4,11 @@ include!(concat!(env!("OUT_DIR"), "/html.rs"));
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tokio::time::{sleep, Duration};
+use tokio::time::Duration;
 use warp::Filter;
 
 mod api;
+mod expiration_checker;
 mod state;
 use state::State;
 
@@ -17,15 +18,7 @@ const TTL: Duration = Duration::from_secs(5);
 async fn main() {
     let db = Arc::new(Mutex::new(State::new(TTL)));
 
-    // timer
-    let db2 = Arc::clone(&db);
-    tokio::task::spawn(async move {
-        loop {
-            sleep(Duration::from_secs(5)).await;
-            let mut state = db2.lock().await;
-            state.clear_if_expired();
-        }
-    });
+    expiration_checker::run(Arc::clone(&db));
 
     let api = api::create(db);
     let html = warp::get().map(|| warp::reply::html(HTML));

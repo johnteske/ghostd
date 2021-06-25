@@ -1,4 +1,8 @@
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tokio::time::{Duration, Instant};
+
+pub type Db = Arc<Mutex<State>>;
 
 pub struct State {
     value: String,
