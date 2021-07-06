@@ -1,16 +1,28 @@
-use std::net::TcpListener;
-use std::sync::{Arc, Mutex};
+#![deny(warnings)]
 
-mod handler;
-mod tmp_state;
+include!(concat!(env!("OUT_DIR"), "/html.rs"));
 
-fn main() {
-    let state = Arc::new(Mutex::new("".to_string()));
-    let tx = tmp_state::start(Arc::clone(&state));
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use tokio::time::Duration;
+use warp::Filter;
 
-    let listener = TcpListener::bind("0.0.0.0:4321").unwrap();
-    for stream in listener.incoming() {
-        let stream = stream.unwrap();
-        handler::connection(stream, tx.clone(), state.clone());
-    }
+mod api;
+mod expiration_checker;
+mod state;
+use state::State;
+
+const TTL: Duration = Duration::from_secs(5);
+
+#[tokio::main(flavor = "current_thread")]
+async fn main() {
+    let db = Arc::new(Mutex::new(State::new(TTL)));
+
+    expiration_checker::run(Arc::clone(&db));
+
+    let api = api::create(db);
+    let html = warp::get().map(|| warp::reply::html(HTML));
+    let routes = api.or(html);
+
+    warp::serve(routes).run(([127, 0, 0, 1], 4321)).await;
 }
