@@ -5,7 +5,9 @@ use std::{env, fs, str};
 use urlencoding::encode;
 
 fn main() {
-    let src_dir = Path::new("src").join("assets");
+    println!("cargo:rerun-if-changed=assets");
+
+    let src_dir = Path::new("assets");
 
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("html.rs");
@@ -15,7 +17,7 @@ fn main() {
     Command::new("npx")
         .arg("tsc")
         .arg("--strict")
-        .arg("src/assets/script.ts")
+        .arg("assets/script.ts")
         .spawn()
         .expect("typescript compiler failed");
     let script_content = get_contents(&src_dir.join("script.js"));
@@ -31,10 +33,6 @@ fn main() {
         .replace("@@STYLE@@", &style_content)
         .replace("@@ICON@@", &icon);
     fs::write(&dest_path, template).unwrap();
-
-    println!("cargo:rerun-if-changed=src/assets/index.html");
-    println!("cargo:rerun-if-changed=src/assets/script.ts");
-    println!("cargo:rerun-if-changed=src/assets/style.css");
 }
 
 fn get_contents(path: &std::path::Path) -> String {

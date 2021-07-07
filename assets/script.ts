@@ -1,3 +1,4 @@
+let messages = "";
 let canCopy = false;
 
 const elements: {
@@ -24,7 +25,7 @@ const elements: {
 
 const enum Action {
   OK,
-  FAIL,
+  ERR,
   GET,
   SET,
 }
@@ -35,42 +36,44 @@ const enum State {
   Getting,
   Idle,
   Setting,
-  Final,
+  Err,
+  Fatal,
 }
 
 const states: {
   [key in State]: {
     fn?: () => void;
     transitions?: { [key in Action]?: State };
-    message: string;
+    message?: string;
     animation?: AnimationClassName;
   };
 } = {
   [State.Initial]: {
     transitions: { [Action.OK]: State.Start },
-    message: "",
   },
   [State.Start]: {
     fn: start,
-    transitions: { [Action.OK]: State.Getting, [Action.FAIL]: State.Final },
+    transitions: { [Action.OK]: State.Getting, [Action.ERR]: State.Fatal },
     message: "loading...",
   },
   [State.Getting]: {
     fn: getValue,
-    transitions: { [Action.OK]: State.Idle, [Action.FAIL]: State.Final },
-    message: "getting...",
+    transitions: { [Action.OK]: State.Idle, [Action.ERR]: State.Err },
   },
   [State.Idle]: {
     transitions: { [Action.GET]: State.Getting, [Action.SET]: State.Setting },
-    message: "...",
   },
   [State.Setting]: {
     fn: postValue,
-    transitions: { [Action.OK]: State.Getting, [Action.FAIL]: State.Final },
+    transitions: { [Action.OK]: State.Getting, [Action.ERR]: State.Err },
     message: "setting...",
   },
-  [State.Final]: {
-    message: "something went terribly wrong",
+  [State.Err]: {
+    transitions: { [Action.GET]: State.Getting, [Action.SET]: State.Setting },
+    animation: "swirl",
+  },
+  [State.Fatal]: {
+    message: "something went terribly wrong\n",
     animation: "swirl",
   },
 };
@@ -79,14 +82,18 @@ function transition(action: Action) {
   const nextState = states[state].transitions?.[action];
 
   if (nextState == null) {
-    setMessage("not a valid transition!");
+    appendMessage("not a valid transition!\n");
     return;
   }
 
   state = nextState;
   states[state].fn?.();
 
-  setMessage(states[state].message);
+  const msg = states[state].message;
+  if (msg != null) {
+    appendMessage(msg);
+  }
+
   setAnimation(states[state].animation);
   setButtonState(state);
 }
@@ -100,7 +107,7 @@ transition(Action.OK);
 async function start() {
   // if any of the elements are null, fail
   if (!Object.keys(elements).every(Boolean)) {
-    setMessage("failed to find some elements");
+    appendMessage("failed to find some elements\n");
     return transition(Action.FAIL);
   }
 
@@ -136,12 +143,13 @@ async function start() {
     .setGroup!.querySelector("button")
     ?.addEventListener("click", setValue);
 
+  appendMessage("ok\n");
   return transition(Action.OK);
 }
 
 async function getValue() {
   await fetch("/value")
-    .then(toText)
+    .then((response: Response) => response.text())
     .then((data) => {
       const getInput = elements.getInput!;
       getInput.value = data;
@@ -151,7 +159,7 @@ async function getValue() {
       transition(Action.OK);
     })
     .catch((error) => {
-      setMessage("error getting value");
+      appendMessage("error getting value!\n");
       console.log(error);
       transition(Action.FAIL);
     });
@@ -165,24 +173,33 @@ async function postValue() {
     },
     body: elements.setInput!.value,
   })
-    .then(toText)
-    .then((data) => {
+    .then((response: Response) => {
       elements.setInput!.value = "";
-      setMessage("set new value!");
-      transition(Action.OK);
+      switch (response.status) {
+        case 204:
+          appendMessage("ok\n");
+          transition(Action.OK);
+          break;
+        case 413:
+          appendMessage("too large!\n");
+          transition(Action.ERR);
+        default:
+          break;
+      }
     })
     .catch((error) => {
-      setMessage("error setting value");
+      appendMessage("error");
       console.log(error);
       transition(Action.FAIL);
     });
 }
 
 // UI
-
-function setMessage(str: string) {
+function appendMessage(str: string) {
+  messages += str;
+  messages = messages.split("\n").slice(-3).join("\n");
   console.log(str);
-  elements.message!.innerHTML = str;
+  elements.message!.innerHTML = messages;
 }
 
 type AnimationClassName = "swirl" | "";
@@ -201,10 +218,10 @@ function setButtonState(state: State) {
 function copyValue() {
   navigator.clipboard.writeText(elements.getInput!.value).then(
     () => {
-      setMessage("copied!");
+      appendMessage("copied!\n");
     },
     () => {
-      setMessage("error copying value");
+      appendMessage("error copying value\n");
     }
   );
 }
@@ -215,8 +232,4 @@ function onEnter(fn: () => void) {
   return function (e: KeyboardEvent) {
     e.keyCode === 13 && fn();
   };
-}
-
-function toText(response: Response) {
-  return response.text();
 }
