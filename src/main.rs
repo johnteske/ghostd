@@ -24,5 +24,5 @@ async fn main() {
     let html = warp::get().map(|| warp::reply::html(HTML));
     let routes = api.or(html);
 
-    warp::serve(routes).run(([127, 0, 0, 1], 4321)).await;
+    warp::serve(routes).run(([0, 0, 0, 0], 4321)).await;
 }

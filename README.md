@@ -10,3 +10,16 @@ temporary shared clipboard server and UI, intended for (W)LAN use
 
 ## Usage
 `cargo run`: starts a web server at localhost:4321
+
+## systemd
+```
+[Unit]
+Description=ghostd daemon
+
+[Service]
+Type=simple
+ExecStart=/path/to/ghostd
+
+[Install]
+WantedBy=multi-user.target
+```
